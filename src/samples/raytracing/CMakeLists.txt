@@ -27,7 +27,13 @@ set(RENDER_SOURCE
         raytracing.cpp
         )
 
-add_executable(raytracing main.cpp ../../utils/glfw_window.cpp ${RAYTRACING_EMBREE} ${VK_UTILS_SRC} ${SCENE_LOADER_SRC} ${RENDER_SOURCE} ${IMGUI_SRC})
+set(GENERATED_SOURCE
+        ../../render/VulkanRTX.cpp
+        raytracing_generated.cpp
+        raytracing_generated_ds.cpp
+        raytracing_generated_init.cpp)
+
+add_executable(raytracing main.cpp ../../utils/glfw_window.cpp ${RAYTRACING_EMBREE} ${VK_UTILS_SRC} ${SCENE_LOADER_SRC} ${RENDER_SOURCE} ${IMGUI_SRC} ${GENERATED_SOURCE})
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     set_target_properties(raytracing PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")

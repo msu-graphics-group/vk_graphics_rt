@@ -1,4 +1,6 @@
+#include <render/VulkanRTX.h>
 #include "simple_render.h"
+#include "raytracing_generated.h"
 
 // ***************************************************************************************************************************
 // setup full screen quad to display ray traced image
@@ -81,12 +83,12 @@ void SimpleRender::RayTrace()
 {
   if(!m_pRayTracer)
   {
-    m_pRayTracer = std::make_unique<RayTracer>(m_width, m_height);
+    m_pRayTracer = std::make_unique<RayTracer_Generated>(m_width, m_height);
     m_pRayTracer->SetScene(m_pAccelStruct);
+
   }
 
   m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
-
 #pragma omp parallel for default(none)
   for (size_t j = 0; j < m_height; ++j)
   {
@@ -94,6 +96,48 @@ void SimpleRender::RayTrace()
     {
       m_pRayTracer->CastSingleRay(i, j, m_raytracedImageData.data());
     }
+  }
+
+  m_pScnMgr->GetCopyHelper()->UpdateImage(m_rtImage.image, m_raytracedImageData.data(), m_width, m_height, 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void SimpleRender::RayTraceGPU()
+{
+  if(!m_pRayTracer)
+  {
+    m_pRayTracer = std::make_unique<RayTracer_Generated>(m_width, m_height);
+    m_pRayTracer->InitVulkanObjects(m_device, m_physicalDevice, m_width * m_height);
+    m_pRayTracer->InitMemberBuffers();
+
+    const size_t bufferSize1 = m_width * m_height * sizeof(uint32_t);
+
+    m_genColorBuffer = vk_utils::createBuffer(m_device, bufferSize1,  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    m_colorMem       = vk_utils::allocateAndBindWithPadding(m_device, m_physicalDevice, {m_genColorBuffer});
+
+    auto tmp = std::make_shared<VulkanRTX>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer, m_queueFamilyIDXs.graphics);
+    tmp->SetSceneAccelStruct(m_pScnMgr->getTLAS().handle);
+    m_pRayTracer->SetScene(tmp);
+    m_pRayTracer->SetVulkanInOutFor_CastSingleRay(m_genColorBuffer, 0);
+    m_pRayTracer->UpdateAll(m_pScnMgr->GetCopyHelper());
+  }
+
+  m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
+  m_pRayTracer->UpdatePlainMembers(m_pScnMgr->GetCopyHelper());
+
+  {
+    VkCommandBuffer commandBuffer = vk_utils::createCommandBuffer(m_device, m_commandPool);
+
+    VkCommandBufferBeginInfo beginCommandBufferInfo = {};
+    beginCommandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginCommandBufferInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginCommandBufferInfo);
+    m_pRayTracer->CastSingleRayCmd(commandBuffer, m_width, m_height, nullptr);
+    vkEndCommandBuffer(commandBuffer);
+
+    vk_utils::executeCommandBufferNow(commandBuffer, m_graphicsQueue, m_device);
+
+    m_pScnMgr->GetCopyHelper()->ReadBuffer(m_genColorBuffer, 0, m_raytracedImageData.data(), m_raytracedImageData.size()*sizeof(m_raytracedImageData[0]));
   }
 
   m_pScnMgr->GetCopyHelper()->UpdateImage(m_rtImage.image, m_raytracedImageData.data(), m_width, m_height, 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);

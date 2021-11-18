@@ -19,11 +19,50 @@ SimpleRender::SimpleRender(uint32_t a_width, uint32_t a_height) : m_width(a_widt
 void SimpleRender::SetupDeviceFeatures()
 {
   // m_enabledDeviceFeatures.fillModeNonSolid = VK_TRUE;
+  m_enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+  m_enabledRayQueryFeatures.rayQuery = VK_TRUE;
+  m_enabledRayQueryFeatures.pNext = nullptr;
+
+  m_enabledDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+  m_enabledDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+  m_enabledDeviceAddressFeatures.pNext = &m_enabledRayQueryFeatures;
+
+  m_enabledAccelStructFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+  m_enabledAccelStructFeatures.accelerationStructure = VK_TRUE;
+  m_enabledAccelStructFeatures.pNext = &m_enabledDeviceAddressFeatures;
+
+  m_pDeviceFeatures = &m_enabledAccelStructFeatures;
 }
 
 void SimpleRender::SetupDeviceExtensions()
 {
   m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+  m_deviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+  m_deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+
+  // Required by VK_KHR_acceleration_structure
+  m_deviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+  m_deviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+  m_deviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+
+  // Required by VK_KHR_ray_tracing_pipeline
+  m_deviceExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+
+  // Required by VK_KHR_spirv_1_4
+  m_deviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+
+  m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+}
+
+void SimpleRender::GetRTFeatures()
+{
+  m_accelStructFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+
+  VkPhysicalDeviceFeatures2 deviceFeatures2{};
+  deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+  deviceFeatures2.pNext = &m_accelStructFeatures;
+  vkGetPhysicalDeviceFeatures2(m_physicalDevice, &deviceFeatures2);
 }
 
 void SimpleRender::SetupValidationLayers()
@@ -47,6 +86,8 @@ void SimpleRender::InitVulkan(const char** a_instanceExtensions, uint32_t a_inst
   CreateDevice(a_deviceId);
   volkLoadDevice(m_device);
 
+  GetRTFeatures();
+
   m_commandPool = vk_utils::createCommandPool(m_device, m_queueFamilyIDXs.graphics,
                                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
@@ -63,7 +104,7 @@ void SimpleRender::InitVulkan(const char** a_instanceExtensions, uint32_t a_inst
   }
 
   m_pScnMgr = std::make_shared<SceneManager>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer,
-                                             m_queueFamilyIDXs.graphics, false);
+                                             m_queueFamilyIDXs.graphics, true);
 
 }
 
@@ -122,7 +163,7 @@ void SimpleRender::CreateDevice(uint32_t a_deviceId)
   SetupDeviceFeatures();
   m_device = vk_utils::createLogicalDevice(m_physicalDevice, m_validationLayers, m_deviceExtensions,
                                            m_enabledDeviceFeatures, m_queueFamilyIDXs,
-                                           VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT);
+                                           VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT, m_pDeviceFeatures);
 
   vkGetDeviceQueue(m_device, m_queueFamilyIDXs.graphics, 0, &m_graphicsQueue);
   vkGetDeviceQueue(m_device, m_queueFamilyIDXs.transfer, 0, &m_transferQueue);
@@ -382,6 +423,10 @@ void SimpleRender::ProcessInput(const AppInput &input)
   {
     m_currentRenderMode = RenderMode::RAYTRACING_CPU;
   }
+  else if(input.keyPressed[GLFW_KEY_3])
+  {
+    m_currentRenderMode = RenderMode::RAYTRACING_GPU;
+  }
 
 }
 
@@ -407,6 +452,8 @@ void SimpleRender::UpdateView()
 void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)
 {
   m_pScnMgr->LoadSceneXML(path, transpose_inst_matrices);
+  m_pScnMgr->BuildAllBLAS();
+  m_pScnMgr->BuildTLAS();
 
   SetupRTScene();
 
@@ -424,12 +471,12 @@ void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)
   SetupSimplePipeline();
   SetupQuadDescriptors();
 
-  auto loadedCam = m_pScnMgr->GetCamera(0);
-  m_cam.fov = loadedCam.fov;
-  m_cam.pos = float3(loadedCam.pos);
-  m_cam.up  = float3(loadedCam.up);
-  m_cam.lookAt = float3(loadedCam.lookAt);
-  m_cam.tdist  = loadedCam.farPlane;
+//  auto loadedCam = m_pScnMgr->GetCamera(0);
+//  m_cam.fov = loadedCam.fov;
+//  m_cam.pos = float3(loadedCam.pos);
+//  m_cam.up  = float3(loadedCam.up);
+//  m_cam.lookAt = float3(loadedCam.lookAt);
+//  m_cam.tdist  = loadedCam.farPlane;
 
   UpdateView();
 }
@@ -454,6 +501,11 @@ void SimpleRender::DrawFrameSimple()
   else if(m_currentRenderMode == RenderMode::RAYTRACING_CPU)
   {
     RayTrace();
+    BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
+  }
+  else if(m_currentRenderMode == RenderMode::RAYTRACING_GPU)
+  {
+    RayTraceGPU();
     BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
   }
 
@@ -646,6 +698,11 @@ void SimpleRender::DrawFrameWithGUI()
   else if(m_currentRenderMode == RenderMode::RAYTRACING_CPU)
   {
     RayTrace();
+    BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
+  }
+  else if(m_currentRenderMode == RenderMode::RAYTRACING_GPU)
+  {
+    RayTraceGPU();
     BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
   }
 

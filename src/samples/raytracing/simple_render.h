@@ -17,11 +17,13 @@
 #include <iostream>
 #include <render/CrossRT.h>
 #include "raytracing.h"
+#include "raytracing_generated.h"
 
 enum class RenderMode
 {
   RASTERIZATION,
-  RAYTRACING_CPU
+  RAYTRACING_CPU,
+  RAYTRACING_GPU
 };
 
 class SimpleRender : public IRender
@@ -121,6 +123,13 @@ protected:
 
   // *** ray tracing
   // full screen quad resources to display ray traced image
+  void GetRTFeatures();
+  void * m_pDeviceFeatures;
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelStructFeatures{};
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR m_enabledAccelStructFeatures{};
+  VkPhysicalDeviceBufferDeviceAddressFeatures m_enabledDeviceAddressFeatures{};
+  VkPhysicalDeviceRayQueryFeaturesKHR m_enabledRayQueryFeatures;
+
   std::vector<uint32_t> m_raytracedImageData;
   std::shared_ptr<vk_utils::IQuad> m_pFSQuad;
   VkDescriptorSet m_quadDS = VK_NULL_HANDLE;
@@ -130,8 +139,12 @@ protected:
 
   std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
 
-  std::unique_ptr<RayTracer> m_pRayTracer;
+  std::unique_ptr<RayTracer_Generated> m_pRayTracer;
   void RayTrace();
+  void RayTraceGPU();
+
+  VkBuffer m_genColorBuffer = VK_NULL_HANDLE;
+  VkDeviceMemory m_colorMem = VK_NULL_HANDLE;
   //
 
   // *** presentation

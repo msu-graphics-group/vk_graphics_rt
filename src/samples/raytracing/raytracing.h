@@ -15,9 +15,10 @@ public:
   void SetScene(std::shared_ptr<ISceneObject> a_pAccelStruct) { m_pAccelStruct = a_pAccelStruct; };
 
   void CastSingleRay(uint32_t tidX, uint32_t tidY, uint32_t* out_color);
-  void kernel_RayTrace(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar, uint32_t* out_color);
+  void kernel_InitEyeRay(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar);
+  void kernel_RayTrace(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color);
 
-private:
+protected:
   uint32_t m_width;
   uint32_t m_height;
 
@@ -26,8 +27,9 @@ private:
 
   std::shared_ptr<ISceneObject> m_pAccelStruct;
 
+  static constexpr uint32_t palette_size = 20;
   // color palette to select color for objects based on mesh/instance id
-  static constexpr uint32_t m_palette[] = {
+  static constexpr uint32_t m_palette[palette_size] = {
     0xffe6194b, 0xff3cb44b, 0xffffe119, 0xff0082c8,
     0xfff58231, 0xff911eb4, 0xff46f0f0, 0xfff032e6,
     0xffd2f53c, 0xfffabebe, 0xff008080, 0xffe6beff,
