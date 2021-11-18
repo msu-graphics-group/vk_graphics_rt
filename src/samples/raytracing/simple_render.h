@@ -16,6 +16,7 @@
 #include <string>
 #include <iostream>
 #include <render/CrossRT.h>
+#include "raytracing.h"
 
 enum class RenderMode
 {
@@ -115,16 +116,22 @@ protected:
   VkDescriptorSetLayout m_dSetLayout = VK_NULL_HANDLE;
   VkRenderPass m_screenRenderPass = VK_NULL_HANDLE; // rasterization renderpass
 
-  // *** ray tracing
-  std::vector<uint32_t> m_raytracedImageData;
-  std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
+  LiteMath::float4x4 m_projectionMatrix;
+  LiteMath::float4x4 m_inverseProjViewMatrix;
 
+  // *** ray tracing
+  // full screen quad resources to display ray traced image
+  std::vector<uint32_t> m_raytracedImageData;
   std::shared_ptr<vk_utils::IQuad> m_pFSQuad;
   VkDescriptorSet m_quadDS = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_quadDSLayout = VK_NULL_HANDLE;
-
   vk_utils::VulkanImageMem m_rtImage;
   VkSampler                m_rtImageSampler;
+
+  std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
+
+  std::unique_ptr<RayTracer> m_pRayTracer;
+  void RayTrace();
   //
 
   // *** presentation
@@ -162,14 +169,14 @@ protected:
 
   void BuildCommandBufferSimple(VkCommandBuffer cmdBuff, VkFramebuffer frameBuff,
                                 VkImageView a_targetImageView, VkPipeline a_pipeline);
+
+  // *** Ray tracing related stuff
   void BuildCommandBufferQuad(VkCommandBuffer a_cmdBuff, VkImageView a_targetImageView);
-
-  void RayTrace();
-
   void SetupQuadRenderer();
   void SetupQuadDescriptors();
   void SetupRTImage();
   void SetupRTScene();
+  // ***************************
 
   void SetupSimplePipeline();
   void CleanupPipelineAndSwapchain();

@@ -342,6 +342,7 @@ void SimpleRender::RecreateSwapChain()
 
   // *** ray tracing resources
   m_raytracedImageData.resize(m_width * m_height);
+  m_pRayTracer = nullptr;
   SetupRTImage();
   SetupQuadRenderer();
   SetupQuadDescriptors();
@@ -395,10 +396,12 @@ void SimpleRender::UpdateView()
 {
   const float aspect   = float(m_width) / float(m_height);
   auto mProjFix        = OpenglToVulkanProjectionMatrixFix();
-  auto mProj           = projectionMatrix(m_cam.fov, aspect, 0.1f, 1000.0f);
+  m_projectionMatrix   = projectionMatrix(m_cam.fov, aspect, 0.1f, 1000.0f);
   auto mLookAt         = LiteMath::lookAt(m_cam.pos, m_cam.lookAt, m_cam.up);
-  auto mWorldViewProj  = mProjFix * mProj * mLookAt;
+  auto mWorldViewProj  = mProjFix * m_projectionMatrix * mLookAt;
   pushConst2M.projView = mWorldViewProj;
+
+  m_inverseProjViewMatrix = LiteMath::inverse4x4(m_projectionMatrix * transpose(inverse4x4(mLookAt)));
 }
 
 void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)

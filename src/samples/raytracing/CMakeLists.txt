@@ -23,6 +23,7 @@ set(RENDER_SOURCE
         ../../render/scene_mgr.cpp
         ../../render/render_imgui.cpp
         simple_render.cpp
+        simple_render_rt.cpp
         raytracing.cpp
         )
 
