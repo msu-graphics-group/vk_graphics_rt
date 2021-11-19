@@ -26,6 +26,13 @@ enum class RenderMode
   RAYTRACING_GPU
 };
 
+class RayTracer_GPU : public RayTracer_Generated
+{
+public:
+  RayTracer_GPU(int32_t a_width, uint32_t a_height) : RayTracer_Generated(a_width, a_height) {} 
+  std::string AlterShaderPath(const char* a_shaderPath) override { return std::string("../src/samples/raytracing/") + std::string(a_shaderPath); }
+};
+
 class SimpleRender : public IRender
 {
 public:
@@ -138,8 +145,7 @@ protected:
   VkSampler                m_rtImageSampler = VK_NULL_HANDLE;
 
   std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
-
-  std::unique_ptr<RayTracer_Generated> m_pRayTracer;
+  std::unique_ptr<RayTracer_GPU> m_pRayTracer;
   void RayTrace();
   void RayTraceGPU();
 

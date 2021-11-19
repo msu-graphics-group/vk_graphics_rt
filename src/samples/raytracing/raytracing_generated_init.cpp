@@ -170,7 +170,7 @@ VkDescriptorSetLayout RayTracer_Generated::CreatecopyKernelFloatDSLayout()
 
 void RayTracer_Generated::InitKernel_InitEyeRay(const char* a_filePath)
 {
-  std::string shaderPath = "../src/samples/raytracing/shaders_generated/kernel_InitEyeRay.comp.spv"; 
+  std::string shaderPath = AlterShaderPath("shaders_generated/kernel_InitEyeRay.comp.spv"); 
   
   m_pMaker->LoadShader(device, shaderPath.c_str(), nullptr, "main");
   InitEyeRayDSLayout = CreateInitEyeRayDSLayout();
@@ -180,7 +180,7 @@ void RayTracer_Generated::InitKernel_InitEyeRay(const char* a_filePath)
 
 void RayTracer_Generated::InitKernel_RayTrace(const char* a_filePath)
 {
-  std::string shaderPath = "../src/samples/raytracing/shaders_generated/kernel_RayTrace.comp.spv"; 
+  std::string shaderPath = AlterShaderPath("shaders_generated/kernel_RayTrace.comp.spv"); 
   
   m_pMaker->LoadShader(device, shaderPath.c_str(), nullptr, "main");
   RayTraceDSLayout = CreateRayTraceDSLayout();

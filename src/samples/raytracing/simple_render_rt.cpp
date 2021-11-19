@@ -12,12 +12,6 @@ void SimpleRender::SetupQuadRenderer()
   rtargetInfo.format = m_swapchain.GetFormat();
   rtargetInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   rtargetInfo.size   = m_swapchain.GetExtent();
-
-  std::cout << "m_width1  = " << m_width << std::endl;
-  std::cout << "m_height1 = " << m_height << std::endl;
-  std::cout << "m_width2 = " << rtargetInfo.size.width << std::endl;
-  std::cout << "m_height2 = " << rtargetInfo.size.height << std::endl;
-
   m_pFSQuad.reset();
   m_pFSQuad = std::make_shared<vk_utils::QuadRenderer>(0,0, m_width, m_height);
   m_pFSQuad->Create(m_device, "../resources/shaders/quad3_vert.vert.spv", "../resources/shaders/my_quad.frag.spv", rtargetInfo);
@@ -88,9 +82,8 @@ void SimpleRender::RayTrace()
 {
   if(!m_pRayTracer)
   {
-    m_pRayTracer = std::make_unique<RayTracer_Generated>(m_width, m_height);
+    m_pRayTracer = std::make_unique<RayTracer_GPU>(m_width, m_height);
     m_pRayTracer->SetScene(m_pAccelStruct);
-
   }
 
   m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
@@ -110,7 +103,7 @@ void SimpleRender::RayTraceGPU()
 {
   if(!m_pRayTracer)
   {
-    m_pRayTracer = std::make_unique<RayTracer_Generated>(m_width, m_height);
+    m_pRayTracer = std::make_unique<RayTracer_GPU>(m_width, m_height);
     m_pRayTracer->InitVulkanObjects(m_device, m_physicalDevice, m_width * m_height);
     m_pRayTracer->InitMemberBuffers();
 

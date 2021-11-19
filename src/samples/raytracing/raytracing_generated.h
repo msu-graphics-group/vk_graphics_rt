@@ -21,7 +21,7 @@ class RayTracer_Generated : public RayTracer
 public:
 
   RayTracer_Generated() {}
-  RayTracer_Generated(uint32_t a_width, uint32_t a_height) : RayTracer(a_width, a_height) {}
+  RayTracer_Generated(uint32_t a_width, uint32_t a_height) : RayTracer(a_width, a_height){}
   virtual void InitVulkanObjects(VkDevice a_device, VkPhysicalDevice a_physicalDevice, size_t a_maxThreadsCount);
 
   virtual void SetVulkanInOutFor_CastSingleRay(
@@ -45,6 +45,10 @@ public:
     UpdateVectorMembers(a_pCopyEngine);
     UpdateTextureMembers(a_pCopyEngine);
   }
+  
+  virtual void UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
+  virtual void UpdateVectorMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
+  virtual void UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
 
   virtual void CastSingleRayCmd(VkCommandBuffer a_commandBuffer, uint32_t tidX, uint32_t tidY, uint32_t* out_color);
 
@@ -52,11 +56,6 @@ public:
   
   virtual void InitEyeRayCmd(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar);
   virtual void RayTraceCmd(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color);
-  
-  virtual void UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
-  virtual void UpdateVectorMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
-  virtual void UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
-
 protected:
   
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -86,6 +85,7 @@ protected:
   
   virtual void FreeMemoryForInternalBuffers();
   virtual void FreeMemoryForMemberBuffersAndImages();
+  virtual std::string AlterShaderPath(const char* in_shaderPath) { return std::string(in_shaderPath); }
 
   
   
