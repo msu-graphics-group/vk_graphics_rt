@@ -67,6 +67,7 @@ include_directories(${CMAKE_SOURCE_DIR}/external/volk)
 include_directories(${CMAKE_SOURCE_DIR}/external/vkutils)
 include_directories(${CMAKE_SOURCE_DIR}/external)
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/src/render)
 ##############################################
 
 add_subdirectory(external/volk)

@@ -9,6 +9,7 @@
 class RayTracer
 {
 public:
+  RayTracer() {}
   RayTracer(uint32_t a_width, uint32_t a_height) : m_width(a_width), m_height(a_height) {};
 
   void UpdateView(const LiteMath::float3& a_camPos, const LiteMath::float4x4& a_invProjView ) { m_camPos = a_camPos; m_invProjView = a_invProjView; }
