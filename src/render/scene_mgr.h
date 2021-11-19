@@ -5,7 +5,6 @@
 
 #include <geom/vk_mesh.h>
 #include <ray_tracing/vk_rt_utils.h>
-#define LAYOUT_STD140
 #include "LiteMath.h"
 #include <vk_copy.h>
 

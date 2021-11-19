@@ -2,7 +2,6 @@
 #define HYDRAXML_H
 
 #include "pugixml.hpp"
-#define LAYOUT_STD140
 #include "LiteMath.h"
 using namespace LiteMath;
 

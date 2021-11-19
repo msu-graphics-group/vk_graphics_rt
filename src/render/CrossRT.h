@@ -2,8 +2,6 @@
 
 #include <cstdint>
 #include <cstddef>
-
-#define LAYOUT_STD140
 #include "LiteMath.h"
 
 /**

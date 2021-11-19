@@ -2,7 +2,6 @@
 #define VK_GRAPHICS_BASIC_COMMON_H
 
 #ifdef __cplusplus
-#define LAYOUT_STD140
 #include <LiteMath.h>
 using LiteMath::uint2;
 using LiteMath::float2;

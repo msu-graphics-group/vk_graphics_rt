@@ -4,6 +4,10 @@
   #include "LiteMathGPU.h"  // if this file is included in OpenCL shaders 
 #else
 
+#ifndef LAYOUT_STD140       // this is needed for normal GLSL/C++ interop
+#define LAYOUT_STD140
+#endif
+
 #include <cstdint>
 #include <cmath>
 #include <limits>           // for std::numeric_limits

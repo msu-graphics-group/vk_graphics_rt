@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <geom/vk_mesh.h>
-#define LAYOUT_STD140
 #include "LiteMath.h"
 #include <vk_copy.h>
 
