@@ -135,7 +135,7 @@ protected:
   VkDescriptorSet m_quadDS = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_quadDSLayout = VK_NULL_HANDLE;
   vk_utils::VulkanImageMem m_rtImage;
-  VkSampler                m_rtImageSampler;
+  VkSampler                m_rtImageSampler = VK_NULL_HANDLE;
 
   std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
 
