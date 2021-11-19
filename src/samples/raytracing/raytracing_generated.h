@@ -20,7 +20,8 @@ class RayTracer_Generated : public RayTracer
 {
 public:
 
-   RayTracer_Generated(uint32_t a_width, uint32_t a_height) : RayTracer(a_width, a_height) {}
+  RayTracer_Generated() {}
+  RayTracer_Generated(uint32_t a_width, uint32_t a_height) : RayTracer(a_width, a_height) {}
   virtual void InitVulkanObjects(VkDevice a_device, VkPhysicalDevice a_physicalDevice, size_t a_maxThreadsCount);
 
   virtual void SetVulkanInOutFor_CastSingleRay(
@@ -51,8 +52,10 @@ public:
   
   virtual void InitEyeRayCmd(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar);
   virtual void RayTraceCmd(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color);
-
+  
   virtual void UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
+  virtual void UpdateVectorMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
+  virtual void UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
 
 protected:
   
@@ -75,9 +78,6 @@ protected:
   virtual void AllocateAllDescriptorSets();
 
   virtual void InitAllGeneratedDescriptorSets_CastSingleRay();
-
-  virtual void UpdateVectorMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
-  virtual void UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
 
   virtual void AllocMemoryForInternalBuffers(const std::vector<VkBuffer>& a_buffers);
   virtual void AssignBuffersToMemory(const std::vector<VkBuffer>& a_buffers, VkDeviceMemory a_mem);

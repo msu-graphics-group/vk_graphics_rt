@@ -13,6 +13,11 @@ void SimpleRender::SetupQuadRenderer()
   rtargetInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   rtargetInfo.size   = m_swapchain.GetExtent();
 
+  std::cout << "m_width1  = " << m_width << std::endl;
+  std::cout << "m_height1 = " << m_height << std::endl;
+  std::cout << "m_width2 = " << rtargetInfo.size.width << std::endl;
+  std::cout << "m_height2 = " << rtargetInfo.size.height << std::endl;
+
   m_pFSQuad.reset();
   m_pFSQuad = std::make_shared<vk_utils::QuadRenderer>(0,0, m_width, m_height);
   m_pFSQuad->Create(m_device, "../resources/shaders/quad3_vert.vert.spv", "../resources/shaders/my_quad.frag.spv", rtargetInfo);

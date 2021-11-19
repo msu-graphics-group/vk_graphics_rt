@@ -33,6 +33,8 @@ set(GENERATED_SOURCE
         raytracing_generated_ds.cpp
         raytracing_generated_init.cpp)
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
+
 add_executable(raytracing main.cpp ../../utils/glfw_window.cpp ${RAYTRACING_EMBREE} ${VK_UTILS_SRC} ${SCENE_LOADER_SRC} ${RENDER_SOURCE} ${IMGUI_SRC} ${GENERATED_SOURCE})
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)

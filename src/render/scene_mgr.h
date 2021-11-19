@@ -73,7 +73,10 @@ struct SceneManager
 
   vk_rt_utils::AccelStructure getTLAS() const { return m_tlas; }
 
-  auto GetMeshData() const { return m_pMeshData; };
+  auto GetMeshData() const {
+    int a = 2; 
+    return m_pMeshData; 
+  };
   auto GetCopyHelper() { return m_pCopyHelper; }
 
   void BuildAllBLAS();

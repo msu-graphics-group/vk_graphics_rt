@@ -173,7 +173,7 @@ protected:
   bool m_enableValidation;
   std::vector<const char*> m_validationLayers;
 
-  std::shared_ptr<SceneManager> m_pScnMgr;
+  std::shared_ptr<SceneManager> m_pScnMgr = nullptr;
 
   void DrawFrameSimple();
 
