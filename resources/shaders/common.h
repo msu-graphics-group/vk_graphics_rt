@@ -2,6 +2,7 @@
 #define VK_GRAPHICS_BASIC_COMMON_H
 
 #ifdef __cplusplus
+#define LAYOUT_STD140
 #include <LiteMath.h>
 using LiteMath::uint2;
 using LiteMath::float2;
@@ -22,9 +23,9 @@ typedef float4x4     mat4;
 struct UniformParams
 {
   mat4  lightMatrix;
-  vec3  lightPos;
+  vec4  lightPos;
+  vec4  baseColor;
   float time;
-  vec3  baseColor;
   bool animateLightColor;
 };
 

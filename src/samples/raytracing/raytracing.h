@@ -5,6 +5,7 @@
 #include <memory>
 #include <iostream>
 
+#define LAYOUT_STD140
 #include "LiteMath.h"
 #include "render/CrossRT.h"
 
