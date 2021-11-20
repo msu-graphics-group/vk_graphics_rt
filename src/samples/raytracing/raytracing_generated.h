@@ -20,7 +20,6 @@ class RayTracer_Generated : public RayTracer
 {
 public:
 
-  RayTracer_Generated() {}
   RayTracer_Generated(uint32_t a_width, uint32_t a_height) : RayTracer(a_width, a_height){}
   virtual void InitVulkanObjects(VkDevice a_device, VkPhysicalDevice a_physicalDevice, size_t a_maxThreadsCount);
 
