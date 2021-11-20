@@ -24,20 +24,13 @@ RayTracer_Generated::~RayTracer_Generated()
 {
   m_pMaker = nullptr;
 
-  vkDestroyDescriptorSetLayout(device, InitEyeRayDSLayout, nullptr);
-  InitEyeRayDSLayout = VK_NULL_HANDLE;
+  vkDestroyDescriptorSetLayout(device, CastSingleRayMegaDSLayout, nullptr);
+  CastSingleRayMegaDSLayout = VK_NULL_HANDLE;
 
-  vkDestroyPipeline(device, InitEyeRayPipeline, nullptr);
-  vkDestroyPipelineLayout(device, InitEyeRayLayout, nullptr);
-  InitEyeRayLayout   = VK_NULL_HANDLE;
-  InitEyeRayPipeline = VK_NULL_HANDLE;
-  vkDestroyDescriptorSetLayout(device, RayTraceDSLayout, nullptr);
-  RayTraceDSLayout = VK_NULL_HANDLE;
-
-  vkDestroyPipeline(device, RayTracePipeline, nullptr);
-  vkDestroyPipelineLayout(device, RayTraceLayout, nullptr);
-  RayTraceLayout   = VK_NULL_HANDLE;
-  RayTracePipeline = VK_NULL_HANDLE;
+  vkDestroyPipeline(device, CastSingleRayMegaPipeline, nullptr);
+  vkDestroyPipelineLayout(device, CastSingleRayMegaLayout, nullptr);
+  CastSingleRayMegaLayout   = VK_NULL_HANDLE;
+  CastSingleRayMegaPipeline = VK_NULL_HANDLE;
   vkDestroyDescriptorSetLayout(device, copyKernelFloatDSLayout, nullptr);
   vkDestroyDescriptorPool(device, m_dsPool, NULL); m_dsPool = VK_NULL_HANDLE;
 
@@ -58,78 +51,30 @@ void RayTracer_Generated::InitHelpers()
   m_pMaker = std::make_unique<vk_utils::ComputePipelineMaker>();
 }
 
-VkDescriptorSetLayout RayTracer_Generated::CreateInitEyeRayDSLayout()
+VkDescriptorSetLayout RayTracer_Generated::CreateCastSingleRayMegaDSLayout()
 {
   std::array<VkDescriptorSetLayoutBinding, 2+1> dsBindings;
 
-  // binding for rayPosAndNear
-  dsBindings[0].binding            = 0;
-  dsBindings[0].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[0].descriptorCount    = 1;
-  dsBindings[0].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[0].pImmutableSamplers = nullptr;
-
-  // binding for rayDirAndFar
-  dsBindings[1].binding            = 1;
-  dsBindings[1].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[1].descriptorCount    = 1;
-  dsBindings[1].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[1].pImmutableSamplers = nullptr;
-
-  // binding for POD members stored in m_classDataBuffer
-  dsBindings[2].binding            = 2;
-  dsBindings[2].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[2].descriptorCount    = 1;
-  dsBindings[2].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[2].pImmutableSamplers = nullptr;
-  
-  VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
-  descriptorSetLayoutCreateInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  descriptorSetLayoutCreateInfo.bindingCount = uint32_t(dsBindings.size());
-  descriptorSetLayoutCreateInfo.pBindings    = dsBindings.data();
-  
-  VkDescriptorSetLayout layout = nullptr;
-  VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCreateInfo, NULL, &layout));
-  return layout;
-}
-VkDescriptorSetLayout RayTracer_Generated::CreateRayTraceDSLayout()
-{
-  std::array<VkDescriptorSetLayoutBinding, 4+1> dsBindings;
-
-  // binding for rayPosAndNear
-  dsBindings[0].binding            = 0;
-  dsBindings[0].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[0].descriptorCount    = 1;
-  dsBindings[0].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[0].pImmutableSamplers = nullptr;
-
-  // binding for rayDirAndFar
-  dsBindings[1].binding            = 1;
-  dsBindings[1].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[1].descriptorCount    = 1;
-  dsBindings[1].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[1].pImmutableSamplers = nullptr;
-
   // binding for out_color
-  dsBindings[2].binding            = 2;
-  dsBindings[2].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[2].descriptorCount    = 1;
-  dsBindings[2].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[2].pImmutableSamplers = nullptr;
+  dsBindings[0].binding            = 0;
+  dsBindings[0].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  dsBindings[0].descriptorCount    = 1;
+  dsBindings[0].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
+  dsBindings[0].pImmutableSamplers = nullptr;
 
   // binding for m_pAccelStruct
-  dsBindings[3].binding            = 3;
-  dsBindings[3].descriptorType     = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-  dsBindings[3].descriptorCount    = 1;
-  dsBindings[3].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[3].pImmutableSamplers = nullptr;
+  dsBindings[1].binding            = 1;
+  dsBindings[1].descriptorType     = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+  dsBindings[1].descriptorCount    = 1;
+  dsBindings[1].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
+  dsBindings[1].pImmutableSamplers = nullptr;
 
   // binding for POD members stored in m_classDataBuffer
-  dsBindings[4].binding            = 4;
-  dsBindings[4].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  dsBindings[4].descriptorCount    = 1;
-  dsBindings[4].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
-  dsBindings[4].pImmutableSamplers = nullptr;
+  dsBindings[2].binding            = 2;
+  dsBindings[2].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  dsBindings[2].descriptorCount    = 1;
+  dsBindings[2].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
+  dsBindings[2].pImmutableSamplers = nullptr;
   
   VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
   descriptorSetLayoutCreateInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -168,31 +113,20 @@ VkDescriptorSetLayout RayTracer_Generated::CreatecopyKernelFloatDSLayout()
 }
 
 
-void RayTracer_Generated::InitKernel_InitEyeRay(const char* a_filePath)
+void RayTracer_Generated::InitKernel_CastSingleRayMega(const char* a_filePath)
 {
-  std::string shaderPath = AlterShaderPath("shaders_generated/kernel_InitEyeRay.comp.spv"); 
+  std::string shaderPath = AlterShaderPath("shaders_generated/CastSingleRayMega.comp.spv"); 
   
   m_pMaker->LoadShader(device, shaderPath.c_str(), nullptr, "main");
-  InitEyeRayDSLayout = CreateInitEyeRayDSLayout();
-  InitEyeRayLayout   = m_pMaker->MakeLayout(device, { InitEyeRayDSLayout }, 128); // at least 128 bytes for push constants
-  InitEyeRayPipeline = m_pMaker->MakePipeline(device);  
-}
-
-void RayTracer_Generated::InitKernel_RayTrace(const char* a_filePath)
-{
-  std::string shaderPath = AlterShaderPath("shaders_generated/kernel_RayTrace.comp.spv"); 
-  
-  m_pMaker->LoadShader(device, shaderPath.c_str(), nullptr, "main");
-  RayTraceDSLayout = CreateRayTraceDSLayout();
-  RayTraceLayout   = m_pMaker->MakeLayout(device, { RayTraceDSLayout }, 128); // at least 128 bytes for push constants
-  RayTracePipeline = m_pMaker->MakePipeline(device);  
+  CastSingleRayMegaDSLayout = CreateCastSingleRayMegaDSLayout();
+  CastSingleRayMegaLayout   = m_pMaker->MakeLayout(device, { CastSingleRayMegaDSLayout }, 128); // at least 128 bytes for push constants
+  CastSingleRayMegaPipeline = m_pMaker->MakePipeline(device);  
 }
 
 
 void RayTracer_Generated::InitKernels(const char* a_filePath)
 {
-  InitKernel_InitEyeRay(a_filePath);
-  InitKernel_RayTrace(a_filePath);
+  InitKernel_CastSingleRayMega(a_filePath);
 }
 
 void RayTracer_Generated::InitBuffers(size_t a_maxThreadsCount, bool a_tempBuffersOverlay)

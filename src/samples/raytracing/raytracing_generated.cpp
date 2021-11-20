@@ -58,10 +58,10 @@ void RayTracer_Generated::UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyEn
 { 
 }
 
-void RayTracer_Generated::InitEyeRayCmd(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar)
+void RayTracer_Generated::CastSingleRayMegaCmd(uint32_t tidX, uint32_t tidY, uint32_t* out_color)
 {
-  uint32_t blockSizeX = 32;
-  uint32_t blockSizeY = 8;
+  uint32_t blockSizeX = 256;
+  uint32_t blockSizeY = 1;
   uint32_t blockSizeZ = 1;
 
   struct KernelArgsPC
@@ -81,39 +81,9 @@ void RayTracer_Generated::InitEyeRayCmd(uint32_t tidX, uint32_t tidY, LiteMath::
   pcData.m_sizeZ  = 1;
   pcData.m_tFlags = m_currThreadFlags;
 
-  vkCmdPushConstants(m_currCmdBuffer, InitEyeRayLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(KernelArgsPC), &pcData);
+  vkCmdPushConstants(m_currCmdBuffer, CastSingleRayMegaLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(KernelArgsPC), &pcData);
   
-  vkCmdBindPipeline(m_currCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, InitEyeRayPipeline);
-  vkCmdDispatch    (m_currCmdBuffer, (sizeX + blockSizeX - 1) / blockSizeX, (sizeY + blockSizeY - 1) / blockSizeY, (sizeZ + blockSizeZ - 1) / blockSizeZ);
- 
-}
-
-void RayTracer_Generated::RayTraceCmd(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color)
-{
-  uint32_t blockSizeX = 32;
-  uint32_t blockSizeY = 8;
-  uint32_t blockSizeZ = 1;
-
-  struct KernelArgsPC
-  {
-    uint32_t m_sizeX;
-    uint32_t m_sizeY;
-    uint32_t m_sizeZ;
-    uint32_t m_tFlags;
-  } pcData;
-  
-  uint32_t sizeX  = uint32_t(std::abs(int32_t(tidX) - int32_t(0)));
-  uint32_t sizeY  = uint32_t(std::abs(int32_t(tidY) - int32_t()));
-  uint32_t sizeZ  = uint32_t(std::abs(int32_t(1) - int32_t(0)));
-
-  pcData.m_sizeX  = tidX;
-  pcData.m_sizeY  = tidY;
-  pcData.m_sizeZ  = 1;
-  pcData.m_tFlags = m_currThreadFlags;
-
-  vkCmdPushConstants(m_currCmdBuffer, RayTraceLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(KernelArgsPC), &pcData);
-  
-  vkCmdBindPipeline(m_currCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayTracePipeline);
+  vkCmdBindPipeline(m_currCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, CastSingleRayMegaPipeline);
   vkCmdDispatch    (m_currCmdBuffer, (sizeX + blockSizeX - 1) / blockSizeX, (sizeY + blockSizeY - 1) / blockSizeY, (sizeZ + blockSizeZ - 1) / blockSizeZ);
  
 }
@@ -178,19 +148,9 @@ void RayTracer_Generated::CastSingleRayCmd(VkCommandBuffer a_commandBuffer, uint
 {
   m_currCmdBuffer = a_commandBuffer;
   VkMemoryBarrier memoryBarrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT }; 
-  const uint32_t outOfForFlags  = KGEN_FLAG_RETURN;
-  const uint32_t inForFlags     = KGEN_FLAG_RETURN | KGEN_FLAG_BREAK;
-    LiteMath::float4 rayPosAndNear, rayDirAndFar;
-  vkCmdBindDescriptorSets(a_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, InitEyeRayLayout, 0, 1, &m_allGeneratedDS[0], 0, nullptr);
-  m_currThreadFlags = outOfForFlags;
-  InitEyeRayCmd(tidX, tidY, &rayPosAndNear, &rayDirAndFar);
-  vkCmdPipelineBarrier(m_currCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-  vkCmdBindDescriptorSets(a_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, RayTraceLayout, 0, 1, &m_allGeneratedDS[1], 0, nullptr);
-  m_currThreadFlags = outOfForFlags;
-  RayTraceCmd(tidX, tidY, &rayPosAndNear, &rayDirAndFar, out_color);
-  vkCmdPipelineBarrier(m_currCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
+  vkCmdBindDescriptorSets(a_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, CastSingleRayMegaLayout, 0, 1, &m_allGeneratedDS[0], 0, nullptr);
+  CastSingleRayMegaCmd(tidX, tidY, out_color);
+  vkCmdPipelineBarrier(m_currCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr); 
 }
 
 

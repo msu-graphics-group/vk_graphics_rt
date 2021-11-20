@@ -54,8 +54,7 @@ public:
 
   virtual void copyKernelFloatCmd(uint32_t length);
   
-  virtual void InitEyeRayCmd(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar);
-  virtual void RayTraceCmd(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color);
+  virtual void CastSingleRayMegaCmd(uint32_t tidX, uint32_t tidY, uint32_t* out_color);
 protected:
   
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -114,16 +113,11 @@ protected:
   VkBuffer m_classDataBuffer = VK_NULL_HANDLE;
   VkDeviceMemory m_allMem    = VK_NULL_HANDLE;
 
-  VkPipelineLayout      InitEyeRayLayout   = VK_NULL_HANDLE;
-  VkPipeline            InitEyeRayPipeline = VK_NULL_HANDLE; 
-  VkDescriptorSetLayout InitEyeRayDSLayout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout CreateInitEyeRayDSLayout();
-  void InitKernel_InitEyeRay(const char* a_filePath);
-  VkPipelineLayout      RayTraceLayout   = VK_NULL_HANDLE;
-  VkPipeline            RayTracePipeline = VK_NULL_HANDLE; 
-  VkDescriptorSetLayout RayTraceDSLayout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout CreateRayTraceDSLayout();
-  void InitKernel_RayTrace(const char* a_filePath);
+  VkPipelineLayout      CastSingleRayMegaLayout   = VK_NULL_HANDLE;
+  VkPipeline            CastSingleRayMegaPipeline = VK_NULL_HANDLE; 
+  VkDescriptorSetLayout CastSingleRayMegaDSLayout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout CreateCastSingleRayMegaDSLayout();
+  void InitKernel_CastSingleRayMega(const char* a_filePath);
 
 
   virtual VkBufferUsageFlags GetAdditionalFlagsForUBO() const;
@@ -134,7 +128,7 @@ protected:
   VkDescriptorSetLayout CreatecopyKernelFloatDSLayout();
 
   VkDescriptorPool m_dsPool = VK_NULL_HANDLE;
-  VkDescriptorSet  m_allGeneratedDS[2];
+  VkDescriptorSet  m_allGeneratedDS[1];
 
   RayTracer_UBO_Data m_uboData;
   
