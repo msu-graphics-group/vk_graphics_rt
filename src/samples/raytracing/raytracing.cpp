@@ -15,7 +15,7 @@ LiteMath::float3 EyeRayDir(float x, float y, float w, float h, LiteMath::float4x
   return normalize(to_float3(pos));
 }
 
-void RayTracer::CastSingleRay(uint32_t tidX, uint32_t tidY, uint32_t* out_color)
+void RayTracer::CastSingleRay(uint32_t tidX, uint32_t tidY, Texture2D<uint>& out_color)
 {
   LiteMath::float4 rayPosAndNear, rayDirAndFar;
   kernel_InitEyeRay(tidX, tidY, &rayPosAndNear, &rayDirAndFar);
@@ -32,12 +32,11 @@ void RayTracer::kernel_InitEyeRay(uint32_t tidX, uint32_t tidY, LiteMath::float4
 }
 
 
-void RayTracer::kernel_RayTrace(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color)
+void RayTracer::kernel_RayTrace(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, Texture2D<uint>& out_color)
 {
   const LiteMath::float4 rayPos = *rayPosAndNear;
   const LiteMath::float4 rayDir = *rayDirAndFar ;
 
   CRT_Hit hit = m_pAccelStruct->RayQuery_NearestHit(rayPos, rayDir);
-
-  out_color[tidY * m_width + tidX] = m_palette[hit.instId % palette_size];
+  out_color[int2(tidX,tidY)] = m_palette[hit.instId % palette_size];
 }

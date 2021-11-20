@@ -24,12 +24,12 @@ public:
   virtual void InitVulkanObjects(VkDevice a_device, VkPhysicalDevice a_physicalDevice, size_t a_maxThreadsCount);
 
   virtual void SetVulkanInOutFor_CastSingleRay(
-    VkBuffer out_colorBuffer,
-    size_t   out_colorOffset,
+    VkImage     out_colorText,
+    VkImageView out_colorView,
     uint32_t dummyArgument = 0)
   {
-    CastSingleRay_local.out_colorBuffer = out_colorBuffer;
-    CastSingleRay_local.out_colorOffset = out_colorOffset;
+    CastSingleRay_local.out_colorText   = out_colorText;
+    CastSingleRay_local.out_colorView   = out_colorView;
     InitAllGeneratedDescriptorSets_CastSingleRay();
   }
 
@@ -49,11 +49,12 @@ public:
   virtual void UpdateVectorMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
   virtual void UpdateTextureMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine);
 
-  virtual void CastSingleRayCmd(VkCommandBuffer a_commandBuffer, uint32_t tidX, uint32_t tidY, uint32_t* out_color);
+  virtual void CastSingleRayCmd(VkCommandBuffer a_commandBuffer, uint32_t tidX, uint32_t tidY, Texture2D<uint>& out_color);
 
   virtual void copyKernelFloatCmd(uint32_t length);
   
-  virtual void CastSingleRayMegaCmd(uint32_t tidX, uint32_t tidY, uint32_t* out_color);
+  virtual void InitEyeRayCmd(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar);
+  virtual void RayTraceCmd(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, Texture2D<uint>& out_color);
 protected:
   
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -96,8 +97,8 @@ protected:
     VkBuffer rayPosAndNearBuffer = VK_NULL_HANDLE;
     size_t   rayPosAndNearOffset = 0;
 
-    VkBuffer out_colorBuffer = VK_NULL_HANDLE;
-    size_t   out_colorOffset = 0;
+    VkImage     out_colorText = VK_NULL_HANDLE;
+    VkImageView out_colorView = VK_NULL_HANDLE;
   } CastSingleRay_local;
 
 
@@ -112,11 +113,16 @@ protected:
   VkBuffer m_classDataBuffer = VK_NULL_HANDLE;
   VkDeviceMemory m_allMem    = VK_NULL_HANDLE;
 
-  VkPipelineLayout      CastSingleRayMegaLayout   = VK_NULL_HANDLE;
-  VkPipeline            CastSingleRayMegaPipeline = VK_NULL_HANDLE; 
-  VkDescriptorSetLayout CastSingleRayMegaDSLayout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout CreateCastSingleRayMegaDSLayout();
-  void InitKernel_CastSingleRayMega(const char* a_filePath);
+  VkPipelineLayout      InitEyeRayLayout   = VK_NULL_HANDLE;
+  VkPipeline            InitEyeRayPipeline = VK_NULL_HANDLE; 
+  VkDescriptorSetLayout InitEyeRayDSLayout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout CreateInitEyeRayDSLayout();
+  void InitKernel_InitEyeRay(const char* a_filePath);
+  VkPipelineLayout      RayTraceLayout   = VK_NULL_HANDLE;
+  VkPipeline            RayTracePipeline = VK_NULL_HANDLE; 
+  VkDescriptorSetLayout RayTraceDSLayout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout CreateRayTraceDSLayout();
+  void InitKernel_RayTrace(const char* a_filePath);
 
 
   virtual VkBufferUsageFlags GetAdditionalFlagsForUBO() const;
@@ -127,7 +133,7 @@ protected:
   VkDescriptorSetLayout CreatecopyKernelFloatDSLayout();
 
   VkDescriptorPool m_dsPool = VK_NULL_HANDLE;
-  VkDescriptorSet  m_allGeneratedDS[1];
+  VkDescriptorSet  m_allGeneratedDS[2];
 
   RayTracer_UBO_Data m_uboData;
   

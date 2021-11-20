@@ -5,6 +5,7 @@
 #include <memory>
 #include <iostream>
 #include "LiteMath.h"
+#include "texture2d.h"
 #include "render/CrossRT.h"
 
 class RayTracer
@@ -15,9 +16,9 @@ public:
   void UpdateView(const LiteMath::float3& a_camPos, const LiteMath::float4x4& a_invProjView ) { m_camPos = to_float4(a_camPos, 1.0f); m_invProjView = a_invProjView; }
   void SetScene(std::shared_ptr<ISceneObject> a_pAccelStruct) { m_pAccelStruct = a_pAccelStruct; };
 
-  void CastSingleRay(uint32_t tidX, uint32_t tidY, uint32_t* out_color);
+  void CastSingleRay(uint32_t tidX, uint32_t tidY, Texture2D<uint>& out_color);
   void kernel_InitEyeRay(uint32_t tidX, uint32_t tidY, LiteMath::float4* rayPosAndNear, LiteMath::float4* rayDirAndFar);
-  void kernel_RayTrace(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, uint32_t* out_color);
+  void kernel_RayTrace(uint32_t tidX, uint32_t tidY, const LiteMath::float4* rayPosAndNear, const LiteMath::float4* rayDirAndFar, Texture2D<uint>& out_color);
 
 protected:
   uint32_t m_width;

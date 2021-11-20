@@ -14,6 +14,7 @@ SimpleRender::SimpleRender(uint32_t a_width, uint32_t a_height) : m_width(a_widt
 #endif
 
   m_raytracedImageData.resize(m_width * m_height);
+  m_raytracedImageCPU.resize(m_width, m_height);
 }
 
 void SimpleRender::SetupDeviceFeatures()
@@ -383,6 +384,8 @@ void SimpleRender::RecreateSwapChain()
 
   // *** ray tracing resources
   m_raytracedImageData.resize(m_width * m_height);
+  m_raytracedImageCPU.resize(m_width, m_height);
+  
   m_pRayTracer = nullptr;
   SetupRTImage();
   SetupQuadRenderer();

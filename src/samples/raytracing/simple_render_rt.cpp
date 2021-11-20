@@ -20,7 +20,8 @@ void SimpleRender::SetupQuadRenderer()
 void SimpleRender::SetupQuadDescriptors()
 {
   m_pBindings->BindBegin(VK_SHADER_STAGE_FRAGMENT_BIT);
-  m_pBindings->BindImage(0, m_rtImage.view, m_rtImageSampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+  //m_pBindings->BindImage(0, m_rtImage.view, m_rtImageSampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+  m_pBindings->BindImage(0,  m_rtImage.view, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_IMAGE_LAYOUT_GENERAL);
   m_pBindings->BindEnd(&m_quadDS, &m_quadDSLayout);
 }
 
@@ -30,8 +31,25 @@ void SimpleRender::SetupRTImage()
 
   // change format and usage according to your implementation of RT
   m_rtImage.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  createImgAllocAndBind(m_device, m_physicalDevice, m_width, m_height, VK_FORMAT_R8G8B8A8_UNORM,
-    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, &m_rtImage);
+  createImgAllocAndBind(m_device, m_physicalDevice, m_width, m_height, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, &m_rtImage);
+  
+  // tranfser image layout to "VK_IMAGE_LAYOUT_GENERAL" because we are goint to write to this image
+  {
+    auto imgCmdBuf = vk_utils::createCommandBuffer(m_device, m_commandPool);
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(imgCmdBuf, &beginInfo);
+    {
+      VkImageSubresourceRange subresourceRange = {};
+      subresourceRange.aspectMask = m_rtImage.aspectMask;
+      subresourceRange.levelCount = 1;
+      subresourceRange.layerCount = 1;
+      vk_utils::setImageLayout(imgCmdBuf, m_rtImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
+    }
+    vkEndCommandBuffer(imgCmdBuf);
+    vk_utils::executeCommandBufferNow(imgCmdBuf, m_transferQueue, m_device);
+  }
 
   if(m_rtImageSampler == VK_NULL_HANDLE)
   {
@@ -87,16 +105,16 @@ void SimpleRender::RayTrace()
   }
 
   m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
-#pragma omp parallel for default(none)
+  #pragma omp parallel for default(none)
   for (size_t j = 0; j < m_height; ++j)
   {
     for (size_t i = 0; i < m_width; ++i)
     {
-      m_pRayTracer->CastSingleRay(i, j, m_raytracedImageData.data());
+      m_pRayTracer->CastSingleRay(i, j, m_raytracedImageCPU);
     }
   }
-
-  m_pScnMgr->GetCopyHelper()->UpdateImage(m_rtImage.image, m_raytracedImageData.data(), m_width, m_height, 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  
+  m_pScnMgr->GetCopyHelper()->UpdateImage(m_rtImage.image, m_raytracedImageCPU.getRawData(), m_width, m_height, 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void SimpleRender::RayTraceGPU()
@@ -115,7 +133,7 @@ void SimpleRender::RayTraceGPU()
     auto tmp = std::make_shared<VulkanRTX>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer, m_queueFamilyIDXs.graphics);
     tmp->SetSceneAccelStruct(m_pScnMgr->getTLAS().handle);
     m_pRayTracer->SetScene(tmp);
-    m_pRayTracer->SetVulkanInOutFor_CastSingleRay(m_genColorBuffer, 0);
+    m_pRayTracer->SetVulkanInOutFor_CastSingleRay(m_rtImage.image, m_rtImage.view);
     m_pRayTracer->UpdateAll(m_pScnMgr->GetCopyHelper());
   }
 
@@ -132,85 +150,9 @@ void SimpleRender::RayTraceGPU()
     beginCommandBufferInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     vkBeginCommandBuffer(commandBuffer, &beginCommandBufferInfo);
-    m_pRayTracer->CastSingleRayCmd(commandBuffer, m_width, m_height, nullptr);
+    Texture2D<uint> dummy;
+    m_pRayTracer->CastSingleRayCmd(commandBuffer, m_width, m_height, dummy);
     
-    // prepare buffer and image for copy command
-    {
-      VkBufferMemoryBarrier transferBuff = {};
-      
-      transferBuff.sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-      transferBuff.pNext               = nullptr;
-      transferBuff.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      transferBuff.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      transferBuff.size                = VK_WHOLE_SIZE;
-      transferBuff.offset              = 0;
-      transferBuff.buffer              = m_genColorBuffer;
-      transferBuff.srcAccessMask       = VK_ACCESS_SHADER_WRITE_BIT;
-      transferBuff.dstAccessMask       = VK_ACCESS_TRANSFER_READ_BIT;
-
-      VkImageMemoryBarrier transferImage;
-      transferImage.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      transferImage.pNext               = NULL;
-      transferImage.srcAccessMask       = 0;
-      transferImage.dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
-      transferImage.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
-      transferImage.newLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; 
-      transferImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      transferImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      transferImage.image               = m_rtImage.image;
-
-      transferImage.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      transferImage.subresourceRange.baseMipLevel   = 0;
-      transferImage.subresourceRange.baseArrayLayer = 0;
-      transferImage.subresourceRange.layerCount     = 1;
-      transferImage.subresourceRange.levelCount     = 1;
-    
-      vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 1, &transferBuff, 1, &transferImage);
-    }
-
-    // execute copy
-    //
-    {
-      VkImageSubresourceLayers subresourceLayers = {};
-      subresourceLayers.aspectMask               = VK_IMAGE_ASPECT_COLOR_BIT;
-      subresourceLayers.mipLevel                 = 0;
-      subresourceLayers.baseArrayLayer           = 0;
-      subresourceLayers.layerCount               = 1;
-
-      VkBufferImageCopy copyRegion = {};
-      copyRegion.bufferOffset      = 0;
-      copyRegion.bufferRowLength   = uint32_t(m_width);
-      copyRegion.bufferImageHeight = uint32_t(m_height);
-      copyRegion.imageExtent       = VkExtent3D{ uint32_t(m_width), uint32_t(m_height), 1 };
-      copyRegion.imageOffset       = VkOffset3D{ 0, 0, 0 };
-      copyRegion.imageSubresource  = subresourceLayers;
-  
-      vkCmdCopyBufferToImage(commandBuffer, m_genColorBuffer, m_rtImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
-    }
-    
-    // get back normal image layout
-    {
-      VkImageMemoryBarrier transferImage;
-      transferImage.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      transferImage.pNext               = NULL;
-      transferImage.srcAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
-      transferImage.dstAccessMask       = VK_ACCESS_SHADER_READ_BIT;
-      transferImage.oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-      transferImage.newLayout           = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; 
-      transferImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      transferImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      transferImage.image               = m_rtImage.image;
-
-      transferImage.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      transferImage.subresourceRange.baseMipLevel   = 0;
-      transferImage.subresourceRange.baseArrayLayer = 0;
-      transferImage.subresourceRange.layerCount     = 1;
-      transferImage.subresourceRange.levelCount     = 1;
-    
-      vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &transferImage);
-    }
-
-
     vkEndCommandBuffer(commandBuffer);
 
     vk_utils::executeCommandBufferNow(commandBuffer, m_graphicsQueue, m_device);

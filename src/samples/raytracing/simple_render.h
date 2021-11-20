@@ -138,6 +138,7 @@ protected:
   VkPhysicalDeviceRayQueryFeaturesKHR m_enabledRayQueryFeatures;
 
   std::vector<uint32_t> m_raytracedImageData;
+  Texture2D<uint>      m_raytracedImageCPU;
   std::shared_ptr<vk_utils::IQuad> m_pFSQuad;
   VkDescriptorSet m_quadDS = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_quadDSLayout = VK_NULL_HANDLE;
