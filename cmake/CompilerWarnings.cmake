@@ -44,7 +44,6 @@ function(set_project_warnings project_name)
       -Wall
       -Wno-unused-parameter
       -Wno-unknown-pragmas
-      -Wno-duplicated-branches
       -Wextra # reasonable and standard
       -Wshadow # warn the user if a variable declaration shadows one from a
                # parent context
@@ -75,7 +74,7 @@ function(set_project_warnings project_name)
       -Wmisleading-indentation # warn if indentation implies blocks where blocks
                                # do not exist
       -Wduplicated-cond # warn if if / else chain has duplicated conditions
-      -Wduplicated-branches # warn if if / else branches have duplicated code
+      -Wno-duplicated-branches
       -Wlogical-op # warn about logical operations being used where bitwise were
                    # probably wanted
 #      -Wuseless-cast # warn if you perform a cast to the same type
