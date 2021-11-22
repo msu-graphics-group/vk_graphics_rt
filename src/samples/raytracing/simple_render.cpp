@@ -637,6 +637,18 @@ void SimpleRender::Cleanup()
     m_uboAlloc = VK_NULL_HANDLE;
   }
 
+  if(m_genColorBuffer != VK_NULL_HANDLE)
+  {
+    vkDestroyBuffer(m_device, m_genColorBuffer, nullptr);
+    m_genColorBuffer = VK_NULL_HANDLE;
+  }
+
+  if(m_colorMem != VK_NULL_HANDLE)
+  {
+    vkFreeMemory(m_device, m_colorMem, nullptr);
+    m_colorMem = VK_NULL_HANDLE;
+  }
+
   m_pRayTracerCPU = nullptr;
   m_pRayTracerGPU = nullptr;
 
