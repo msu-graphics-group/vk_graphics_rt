@@ -346,7 +346,8 @@ void SceneManager::BuildAllBLAS()
   // Determine scratch buffer size depending on the largest geometry
   for (size_t idx = 0; idx < nBlas; idx++)
   {
-    VkAccelerationStructureBuildSizesInfoKHR sizeInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
+    VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
+    sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
     vkGetAccelerationStructureBuildSizesKHR(m_device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                                             &buildInfos[idx], &m_blasOffsetInfo[idx].primitiveCount, &sizeInfo);
 
@@ -362,7 +363,8 @@ void SceneManager::BuildAllBLAS()
   std::vector<VkCommandBuffer> allCmdBufs = vk_utils::createCommandBuffers(m_device, commandPool, nBlas);
   for (uint32_t idx = 0; idx < nBlas; idx++)
   {
-    VkCommandBufferBeginInfo cmdBufInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    VkCommandBufferBeginInfo cmdBufInfo = {};
+    cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     VK_CHECK_RESULT(vkBeginCommandBuffer(allCmdBufs[idx], &cmdBufInfo));
     auto &blas = m_blas[idx];
     buildInfos[idx].dstAccelerationStructure = blas.handle;
@@ -374,7 +376,8 @@ void SceneManager::BuildAllBLAS()
     vkCmdBuildAccelerationStructuresKHR(allCmdBufs[idx], 1, &buildInfos[idx], pBuildOffset.data());
 
     // barrier for scratch buffer
-    VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+    VkMemoryBarrier barrier = {};
+    barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
     barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
     barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
     vkCmdPipelineBarrier(allCmdBufs[idx],
@@ -451,17 +454,18 @@ void SceneManager::BuildTLAS()
                               sizeof(VkAccelerationStructureInstanceKHR) * geometryInstances.size());
 
 
-  VkAccelerationStructureGeometryInstancesDataKHR instancesVk{
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR};
+  VkAccelerationStructureGeometryInstancesDataKHR instancesVk = {};
+  instancesVk.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
   instancesVk.arrayOfPointers = VK_FALSE;
   instancesVk.data.deviceAddress = vk_rt_utils::getBufferDeviceAddress(m_device, instancesBuffer);
 
-  VkAccelerationStructureGeometryKHR topASGeometry{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
+  VkAccelerationStructureGeometryKHR topASGeometry = {};
+  topASGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
   topASGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
   topASGeometry.geometry.instances = instancesVk;
 
-  VkAccelerationStructureBuildGeometryInfoKHR buildInfo{
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
+  VkAccelerationStructureBuildGeometryInfoKHR buildInfo = {};
+  buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
   buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
   buildInfo.geometryCount = 1;
   buildInfo.pGeometries = &topASGeometry;
@@ -470,7 +474,8 @@ void SceneManager::BuildTLAS()
   buildInfo.srcAccelerationStructure = VK_NULL_HANDLE;
 
   uint32_t count = geometryInstances.size();
-  VkAccelerationStructureBuildSizesInfoKHR sizeInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
+  VkAccelerationStructureBuildSizesInfoKHR sizeInfo = {};
+  sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
   vkGetAccelerationStructureBuildSizesKHR(m_device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &count,
                                           &sizeInfo);
 
@@ -496,7 +501,8 @@ void SceneManager::BuildTLAS()
 
   VkCommandPool commandPool = vk_utils::createCommandPool(m_device, m_graphicsQId, VkCommandPoolCreateFlagBits(0));
   VkCommandBuffer commandBuffer = vk_utils::createCommandBuffer(m_device, commandPool);
-  VkCommandBufferBeginInfo cmdBufInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  VkCommandBufferBeginInfo cmdBufInfo = {};
+  cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
   vkCmdBuildAccelerationStructuresKHR(
       commandBuffer,
