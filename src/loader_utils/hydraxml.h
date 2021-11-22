@@ -8,7 +8,7 @@ using namespace LiteMath;
 #include <vector>
 #include <set>
 #include <unordered_map>
-//#include <iostream>
+#include <iostream>
 
 #if defined(__ANDROID__)
 #include <android/asset_manager.h>
@@ -54,6 +54,39 @@ namespace hydra_xml
     float nearPlane;
     float farPlane;
   };
+
+  struct PbrMetallicRoughness // 8 * 32 bits = 32 bytes
+  {
+    float baseColor[4];
+    float metallic;
+    float roughness;
+    int32_t baseColorTexId;
+    int32_t metallicRoughnessTexId; // glTF 2.0: metalness - B channel, roughness - G channel
+  };
+
+  // NOTE: double-sided flag is ignored for now
+  // it probably should be stored somewhere else, because we won't need it on GPU and it will just break the alignment
+  struct gltfMaterialData // 16 * 32 bits = 64 bytes
+  {
+    PbrMetallicRoughness metRoughnessData;
+    int32_t normalTexId;
+
+    // glTF 2.0: only R channel,
+    // Higher values indicate areas that receive full indirect lighting and lower values indicate no indirect lighting
+    int32_t occlusionTexId;
+
+    float emissionColor[3]; // linear multiplier of emission texture
+    int32_t emissionTexId;
+
+    float alphaCutoff;
+    // alphaMode specifies baseColor alpha interpretation:
+    // 0 - opaque, alpha ignored
+    // 1 - mask, fully opaque or fully transparent, depending on alpha and alphaCutoff
+    // 2 - blend, alpha used to composite with OVER operator
+    int32_t alphaMode;
+  };
+
+  std::ostream& operator<<(std::ostream& os, gltfMaterialData gltfMat);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -170,6 +203,109 @@ namespace hydra_xml
     pugi::xml_node_iterator m_iter;
 	};
 
+  class MaterialIteratorGLTF //
+  {
+    friend class pugi::xml_node;
+    friend class pugi::xml_node_iterator;
+
+  public:
+
+    // Default constructor
+    MaterialIteratorGLTF() = default;
+    MaterialIteratorGLTF(const pugi::xml_node_iterator& a_iter) : m_iter(a_iter) {}
+
+    // Iterator operators
+    bool operator==(const MaterialIteratorGLTF& rhs) const { return m_iter == rhs.m_iter;}
+    bool operator!=(const MaterialIteratorGLTF& rhs) const { return (m_iter != rhs.m_iter); }
+
+    gltfMaterialData operator*() const
+    {
+      gltfMaterialData materialData = {};
+      materialData.alphaCutoff    = 0.5f;
+      materialData.alphaMode      = 0;
+      materialData.emissionTexId  = -1;
+      materialData.normalTexId    = -1;
+      materialData.occlusionTexId = -1;
+      materialData.metRoughnessData.baseColorTexId = -1;
+      materialData.metRoughnessData.metallicRoughnessTexId = -1;
+
+      if(m_iter->child(L"opacity").child(L"texture"))
+      {
+        materialData.alphaMode = 1;
+      }
+
+      LiteMath::float3 emission = hydra_xml::read3f(m_iter->child(L"emission").child(L"color").attribute(L"val"));
+      LiteMath::float3 diffuse  = hydra_xml::read3f(m_iter->child(L"diffuse").child(L"color").attribute(L"val"));
+      LiteMath::float3 reflect  = hydra_xml::read3f(m_iter->child(L"reflectivity").child(L"color").attribute(L"val"));
+
+      // determine where to take the base color
+      bool diffColor = true;
+      materialData.metRoughnessData.baseColor[0] = diffuse.x;
+      materialData.metRoughnessData.baseColor[1] = diffuse.y;
+      materialData.metRoughnessData.baseColor[2] = diffuse.z;
+      if(diffuse.x < LiteMath::EPSILON && diffuse.y < LiteMath::EPSILON && diffuse.z < LiteMath::EPSILON)
+      {
+        diffColor = false;
+        materialData.metRoughnessData.baseColor[0] = reflect.x;
+        materialData.metRoughnessData.baseColor[1] = reflect.y;
+        materialData.metRoughnessData.baseColor[2] = reflect.z;
+      }
+
+      materialData.metRoughnessData.roughness = 1.0f - m_iter->child(L"reflectivity").child(L"glossiness").attribute(L"val").as_float();
+
+      float ior = m_iter->child(L"reflectivity").child(L"fresnel_ior").attribute(L"val").as_float();
+      materialData.metRoughnessData.metallic = ior < LiteMath::EPSILON ? 0 : powf((1 - ior) / (1 + ior), 2);
+
+      materialData.emissionColor[0] = emission.x;
+      materialData.emissionColor[1] = emission.y;
+      materialData.emissionColor[2] = emission.z;
+
+      // texture IDs
+      //
+      auto emissionColorTex = m_iter->child(L"emission").child(L"color").child(L"texture");
+      if(emissionColorTex)
+      {
+        materialData.emissionTexId = emissionColorTex.attribute(L"id").as_int();
+      }
+
+      auto baseColorTex = m_iter->child(L"diffuse").child(L"color").child(L"texture");
+      if(!diffColor)
+      {
+        baseColorTex = m_iter->child(L"reflectivity").child(L"color").child(L"texture");
+      }
+      if(baseColorTex)
+      {
+        materialData.metRoughnessData.baseColorTexId = baseColorTex.attribute(L"id").as_int();
+      }
+
+      auto roughnessTex = m_iter->child(L"reflectivity").child(L"glossiness").child(L"texture");
+      if(roughnessTex)
+      {
+        materialData.metRoughnessData.metallicRoughnessTexId = roughnessTex.attribute(L"id").as_int();
+      }
+
+      auto displaceType = std::wstring(m_iter->child(L"displacement").attribute(L"type").as_string());
+//      if(displaceType == L"height_bump")
+      {
+        auto normalTex = m_iter->child(L"displacement").child(L"height_map").child(L"texture");
+        if(normalTex)
+        {
+          materialData.normalTexId = normalTex.attribute(L"id").as_int();
+        }
+      }
+        return materialData;
+    }
+
+    const MaterialIteratorGLTF& operator++() { ++m_iter; return *this; }
+    MaterialIteratorGLTF operator++(int)     { m_iter++; return *this; }
+
+    const MaterialIteratorGLTF& operator--() { --m_iter; return *this; }
+    MaterialIteratorGLTF operator--(int)     { m_iter--; return *this; }
+
+  private:
+    pugi::xml_node_iterator m_iter;
+  };
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -210,6 +346,9 @@ namespace hydra_xml
 
     pugi::xml_object_range<CamIterator> Cameras() { return {CamIterator(m_cameraLib.begin()),
                                                             CamIterator(m_cameraLib.end())}; }
+
+    pugi::xml_object_range<MaterialIteratorGLTF> MaterialsGLTF() { return {MaterialIteratorGLTF(m_materialsLib.begin()),
+        MaterialIteratorGLTF(m_materialsLib.end())}; }
 
     std::vector<LiteMath::float4x4> GetAllInstancesOfMeshLoc(const std::string& a_loc) const 
     { 

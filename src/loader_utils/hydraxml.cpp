@@ -13,10 +13,6 @@
 
 namespace hydra_xml
 {
-  #pragma warning(push)
-  #pragma warning(disable: 4996)
-  // Here we use codecvt_utf8 and other types depricated in C++17
-  // TODO: Replace it with another implementation.
   std::wstring s2ws(const std::string& str)
   {
     using convert_typeX = std::codecvt_utf8<wchar_t>;
@@ -30,7 +26,6 @@ namespace hydra_xml
     std::wstring_convert<convert_typeX, wchar_t> converterX;
     return converterX.to_bytes(wstr);
   }
-  #pragma warning(pop)
 
   void HydraScene::LogError(const std::string &msg)
   {
@@ -267,6 +262,44 @@ namespace hydra_xml
       inst.lightNode = lights[inst.lightId];
     }
     return result;
+  }
+
+  std::ostream& operator<<(std::ostream& os, gltfMaterialData gltfMat)
+  {
+    os << "\tBase color: " << gltfMat.metRoughnessData.baseColor[0] << " "
+                           << gltfMat.metRoughnessData.baseColor[1] << " "
+                           << gltfMat.metRoughnessData.baseColor[2] << " "
+                           << gltfMat.metRoughnessData.baseColor[3] << "\n";
+    os << "\tBase color texId: " << gltfMat.metRoughnessData.baseColorTexId << "\n";
+
+    os << "\tMetallic factor: " << gltfMat.metRoughnessData.metallic << "\n";
+    os << "\tRoughness factor: " << gltfMat.metRoughnessData.roughness << "\n";
+    os << "\tMetallicRoughness texId: " << gltfMat.metRoughnessData.metallicRoughnessTexId << "\n";
+
+    os << "\tEmission color: " << gltfMat.emissionColor[0] << " "
+       << gltfMat.emissionColor[1] << " "
+       << gltfMat.emissionColor[2] << "\n";
+    os << "\tEmission texId: " << gltfMat.emissionTexId << "\n";
+
+    os << "\tNormal texId: " << gltfMat.normalTexId << "\n";
+    os << "\tOcclusion texId: " << gltfMat.occlusionTexId << "\n";
+
+    os << "\tAlpha cutoff: " << gltfMat.alphaCutoff << "\n";
+    os << "\tAlpha mode: ";
+    switch(gltfMat.alphaMode)
+    {
+    case 0:
+      os << "OPAQUE";
+      break;
+    case 1:
+      os << "MASK";
+      break;
+    case 3:
+      os << "BLEND";
+      break;
+    }
+
+    return os;
   }
 
 }

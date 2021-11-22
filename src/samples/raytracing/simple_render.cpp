@@ -107,8 +107,22 @@ void SimpleRender::InitVulkan(const char** a_instanceExtensions, uint32_t a_inst
     VK_CHECK_RESULT(vkCreateFence(m_device, &fenceInfo, nullptr, &m_frameFences[i]));
   }
 
-  m_pScnMgr = std::make_shared<SceneManager>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer,
-                                             m_queueFamilyIDXs.graphics, ENABLE_HARDWARE_RT);
+  m_pCopyHelper = std::make_shared<vk_utils::PingPongCopyHelper>(m_physicalDevice, m_device, m_transferQueue,
+    m_queueFamilyIDXs.transfer, STAGING_MEM_SIZE);
+
+  LoaderConfig conf = {};
+  conf.load_geometry = true;
+  conf.load_materials = MATERIAL_LOAD_MODE::NONE;
+  if(ENABLE_HARDWARE_RT)
+  {
+    conf.build_acc_structs = true;
+    conf.build_acc_structs_while_loading_scene = true;
+    conf.builder_type = BVH_BUILDER_TYPE::RTX;
+  }
+
+  m_pScnMgr = std::make_shared<SceneManager>(m_device, m_physicalDevice, m_queueFamilyIDXs.graphics, m_pCopyHelper, conf);
+//  m_pScnMgr = std::make_shared<SceneManager>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer,
+//                                             m_queueFamilyIDXs.graphics, ENABLE_HARDWARE_RT);
 
 }
 
@@ -425,11 +439,7 @@ void SimpleRender::ProcessInput(const AppInput &input)
   }
   else if(input.keyPressed[GLFW_KEY_2])
   {
-    m_currentRenderMode = RenderMode::RAYTRACING_CPU;
-  }
-  else if(input.keyPressed[GLFW_KEY_3])
-  {
-    m_currentRenderMode = RenderMode::RAYTRACING_GPU;
+    m_currentRenderMode = RenderMode::RAYTRACING;
   }
 
 }
@@ -453,15 +463,18 @@ void SimpleRender::UpdateView()
   m_inverseProjViewMatrix = LiteMath::inverse4x4(m_projectionMatrix * transpose(inverse4x4(mLookAt)));
 }
 
-void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)
+void SimpleRender::LoadScene(const char* path)
 {
-  m_pScnMgr->LoadSceneXML(path, transpose_inst_matrices);
+  m_pScnMgr->LoadScene(path);
   if(ENABLE_HARDWARE_RT)
   {
     m_pScnMgr->BuildAllBLAS();
     m_pScnMgr->BuildTLAS();
   }
-  SetupRTScene();
+  else
+  {
+    SetupRTScene();
+  }
 
   std::vector<std::pair<VkDescriptorType, uint32_t> > dtypes = {
     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,             1},
@@ -504,14 +517,13 @@ void SimpleRender::DrawFrameSimple()
   {
     BuildCommandBufferSimple(currentCmdBuf, m_frameBuffers[imageIdx], m_swapchain.GetAttachment(imageIdx).view, m_basicForwardPipeline.pipeline);
   }
-  else if(m_currentRenderMode == RenderMode::RAYTRACING_CPU)
+  else if(m_currentRenderMode == RenderMode::RAYTRACING)
   {
-    RayTrace();
-    BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
-  }
-  else if(m_currentRenderMode == RenderMode::RAYTRACING_GPU)
-  {
-    RayTraceGPU();
+    if (ENABLE_HARDWARE_RT)
+      RayTraceGPU();
+    else
+      RayTraceCPU();
+
     BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
   }
 
@@ -656,6 +668,9 @@ void SimpleRender::SetupGUIElements()
   {
 //    ImGui::ShowDemoWindow();
     ImGui::Begin("Your render settings here");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),"Press '1' for rasterization mode");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Press '2' for raytracing mode");
+    ImGui::NewLine();
 
     ImGui::ColorEdit3("Meshes base color", m_uniforms.baseColor.M, ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoInputs);
     ImGui::SliderFloat3("Light source position", m_uniforms.lightPos.M, -10.f, 10.f);
@@ -701,14 +716,13 @@ void SimpleRender::DrawFrameWithGUI()
   {
     BuildCommandBufferSimple(currentCmdBuf, m_frameBuffers[imageIdx], m_swapchain.GetAttachment(imageIdx).view, m_basicForwardPipeline.pipeline);
   }
-  else if(m_currentRenderMode == RenderMode::RAYTRACING_CPU)
+  else if(m_currentRenderMode == RenderMode::RAYTRACING)
   {
-    RayTrace();
-    BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
-  }
-  else if(m_currentRenderMode == RenderMode::RAYTRACING_GPU)
-  {
-    RayTraceGPU();
+    if (ENABLE_HARDWARE_RT)
+      RayTraceGPU();
+    else
+      RayTraceCPU();
+
     BuildCommandBufferQuad(currentCmdBuf, m_swapchain.GetAttachment(imageIdx).view);
   }
 

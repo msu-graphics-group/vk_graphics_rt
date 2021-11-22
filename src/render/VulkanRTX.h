@@ -12,7 +12,7 @@
 class VulkanRTX : public ISceneObject
 {
 public:
-  VulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t a_transferQId, uint32_t a_graphicsQId);
+  VulkanRTX(std::shared_ptr<SceneManager> a_pScnMgr);
   ~VulkanRTX();
   void ClearGeom() override;
   

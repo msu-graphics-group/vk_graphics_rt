@@ -28,4 +28,22 @@ struct UniformParams
   bool animateLightColor;
 };
 
+struct MaterialData_pbrMR
+{
+  vec4 baseColor;
+
+  float metallic;
+  float roughness;
+  int baseColorTexId;
+  int metallicRoughnessTexId;
+
+  vec3 emissionColor;
+  int emissionTexId;
+
+  int normalTexId;
+  int occlusionTexId;
+  float alphaCutoff;
+  int alphaMode;
+};
+
 #endif //VK_GRAPHICS_BASIC_COMMON_H

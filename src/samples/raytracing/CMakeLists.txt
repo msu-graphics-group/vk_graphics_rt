@@ -21,6 +21,7 @@ set(RAYTRACING_EMBREE_LIBS
 
 set(RENDER_SOURCE
         ../../render/scene_mgr.cpp
+        ../../render/scene_mgr_loaders.cpp
         ../../render/render_imgui.cpp
         simple_render.cpp
         simple_render_rt.cpp

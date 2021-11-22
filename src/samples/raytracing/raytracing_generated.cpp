@@ -34,9 +34,6 @@ void RayTracer_Generated::InitVulkanObjects(VkDevice a_device, VkPhysicalDevice 
   InitBuffers(a_maxThreadsCount, true);
   InitKernels(".spv");
   AllocateAllDescriptorSets();
-
-  auto queueAllFID = vk_utils::getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT);
-  m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateVulkanRTX(a_device, a_physicalDevice, queueAllFID, queueAllFID), [](ISceneObject *p) { DeleteSceneRT(p); } ); 
 }
 
 void RayTracer_Generated::UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine)

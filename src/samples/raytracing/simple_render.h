@@ -22,8 +22,7 @@
 enum class RenderMode
 {
   RASTERIZATION,
-  RAYTRACING_CPU,
-  RAYTRACING_GPU
+  RAYTRACING,
 };
 
 class RayTracer_GPU : public RayTracer_Generated
@@ -38,7 +37,9 @@ class SimpleRender : public IRender
 public:
   const std::string VERTEX_SHADER_PATH   = "../resources/shaders/simple.vert";
   const std::string FRAGMENT_SHADER_PATH = "../resources/shaders/simple.frag";
-  const bool        ENABLE_HARDWARE_RT   = true;
+  const bool        ENABLE_HARDWARE_RT   = false;
+
+  static constexpr uint64_t STAGING_MEM_SIZE = 16 * 16 * 1024u;
 
   SimpleRender(uint32_t a_width, uint32_t a_height);
   ~SimpleRender()  { Cleanup(); };
@@ -55,7 +56,7 @@ public:
   Camera GetCurrentCamera() override {return m_cam;}
   void UpdateView();
 
-  void LoadScene(const char *path, bool transpose_inst_matrices) override;
+  void LoadScene(const char *path) override;
   void DrawFrame(float a_time, DrawMode a_mode) override;
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +92,8 @@ protected:
   VkDevice         m_device         = VK_NULL_HANDLE;
   VkQueue          m_graphicsQueue  = VK_NULL_HANDLE;
   VkQueue          m_transferQueue  = VK_NULL_HANDLE;
+
+  std::shared_ptr<vk_utils::ICopyEngine> m_pCopyHelper;
 
   vk_utils::QueueFID_T m_queueFamilyIDXs {UINT32_MAX, UINT32_MAX, UINT32_MAX};
 
@@ -147,7 +150,7 @@ protected:
 
   std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
   std::unique_ptr<RayTracer_GPU> m_pRayTracer;
-  void RayTrace();
+  void RayTraceCPU();
   void RayTraceGPU();
 
   VkBuffer m_genColorBuffer = VK_NULL_HANDLE;

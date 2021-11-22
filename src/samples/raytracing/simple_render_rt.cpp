@@ -78,7 +78,7 @@ void SimpleRender::SetupRTScene()
 }
 
 // perform ray tracing on the CPU and upload resulting image on the GPU
-void SimpleRender::RayTrace()
+void SimpleRender::RayTraceCPU()
 {
   if(!m_pRayTracer)
   {
@@ -96,7 +96,7 @@ void SimpleRender::RayTrace()
     }
   }
 
-  m_pScnMgr->GetCopyHelper()->UpdateImage(m_rtImage.image, m_raytracedImageData.data(), m_width, m_height, 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  m_pCopyHelper->UpdateImage(m_rtImage.image, m_raytracedImageData.data(), m_width, m_height, 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void SimpleRender::RayTraceGPU()
@@ -112,15 +112,16 @@ void SimpleRender::RayTraceGPU()
     m_genColorBuffer = vk_utils::createBuffer(m_device, bufferSize1,  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
     m_colorMem       = vk_utils::allocateAndBindWithPadding(m_device, m_physicalDevice, {m_genColorBuffer});
 
-    auto tmp = std::make_shared<VulkanRTX>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer, m_queueFamilyIDXs.graphics);
-    tmp->SetSceneAccelStruct(m_pScnMgr->getTLAS().handle);
+    auto tmp = std::make_shared<VulkanRTX>(m_pScnMgr);
+    tmp->CommitScene();
+
     m_pRayTracer->SetScene(tmp);
     m_pRayTracer->SetVulkanInOutFor_CastSingleRay(m_genColorBuffer, 0);
-    m_pRayTracer->UpdateAll(m_pScnMgr->GetCopyHelper());
+    m_pRayTracer->UpdateAll(m_pCopyHelper);
   }
 
   m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
-  m_pRayTracer->UpdatePlainMembers(m_pScnMgr->GetCopyHelper());
+  m_pRayTracer->UpdatePlainMembers(m_pCopyHelper);
   
   // do ray tracing
   //
