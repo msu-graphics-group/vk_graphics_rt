@@ -18,41 +18,45 @@ SimpleRender::SimpleRender(uint32_t a_width, uint32_t a_height) : m_width(a_widt
 
 void SimpleRender::SetupDeviceFeatures()
 {
-  // m_enabledDeviceFeatures.fillModeNonSolid = VK_TRUE;
-  m_enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
-  m_enabledRayQueryFeatures.rayQuery = VK_TRUE;
-  m_enabledRayQueryFeatures.pNext = nullptr;
-
-  m_enabledDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
-  m_enabledDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
-  m_enabledDeviceAddressFeatures.pNext = &m_enabledRayQueryFeatures;
-
-  m_enabledAccelStructFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-  m_enabledAccelStructFeatures.accelerationStructure = VK_TRUE;
-  m_enabledAccelStructFeatures.pNext = &m_enabledDeviceAddressFeatures;
-
-  m_pDeviceFeatures = &m_enabledAccelStructFeatures;
+  if(ENABLE_HARDWARE_RT)
+  {
+    // m_enabledDeviceFeatures.fillModeNonSolid = VK_TRUE;
+    m_enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    m_enabledRayQueryFeatures.rayQuery = VK_TRUE;
+    m_enabledRayQueryFeatures.pNext = nullptr;
+    
+    m_enabledDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    m_enabledDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+    m_enabledDeviceAddressFeatures.pNext = &m_enabledRayQueryFeatures;
+    
+    m_enabledAccelStructFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    m_enabledAccelStructFeatures.accelerationStructure = VK_TRUE;
+    m_enabledAccelStructFeatures.pNext = &m_enabledDeviceAddressFeatures;
+    
+    m_pDeviceFeatures = &m_enabledAccelStructFeatures;
+  }
+  else
+    m_pDeviceFeatures = nullptr;
+    
 }
 
 void SimpleRender::SetupDeviceExtensions()
 {
   m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
-  m_deviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-  m_deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-
-  // Required by VK_KHR_acceleration_structure
-  m_deviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
-  m_deviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-  m_deviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-
-  // Required by VK_KHR_ray_tracing_pipeline
-  m_deviceExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
-
-  // Required by VK_KHR_spirv_1_4
-  m_deviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
-
-  m_deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+  
+  if(ENABLE_HARDWARE_RT)
+  {
+    m_deviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+    m_deviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+    // Required by VK_KHR_acceleration_structure
+    m_deviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+    m_deviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+    m_deviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+    // Required by VK_KHR_ray_tracing_pipeline
+    m_deviceExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+    // Required by VK_KHR_spirv_1_4
+    m_deviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+  }
 }
 
 void SimpleRender::GetRTFeatures()
@@ -104,7 +108,7 @@ void SimpleRender::InitVulkan(const char** a_instanceExtensions, uint32_t a_inst
   }
 
   m_pScnMgr = std::make_shared<SceneManager>(m_device, m_physicalDevice, m_queueFamilyIDXs.transfer,
-                                             m_queueFamilyIDXs.graphics, true);
+                                             m_queueFamilyIDXs.graphics, ENABLE_HARDWARE_RT);
 
 }
 
@@ -452,9 +456,11 @@ void SimpleRender::UpdateView()
 void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)
 {
   m_pScnMgr->LoadSceneXML(path, transpose_inst_matrices);
-  m_pScnMgr->BuildAllBLAS();
-  m_pScnMgr->BuildTLAS();
-
+  if(ENABLE_HARDWARE_RT)
+  {
+    m_pScnMgr->BuildAllBLAS();
+    m_pScnMgr->BuildTLAS();
+  }
   SetupRTScene();
 
   std::vector<std::pair<VkDescriptorType, uint32_t> > dtypes = {
