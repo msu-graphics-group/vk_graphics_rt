@@ -22,7 +22,7 @@ Executable will be built in *bin* subdirectory - *vk_graphics_rt/bin/renderer*
 * Execute "./raytracing" from the "bin" directory 
 * Select rendering mode via '1','2','3' buttons 
 * If you don't have support for hardware ray tracing, set "ENABLE_HARDWARE_RT = false" in simple_renderer.h
-* If you are going to work with this sample via kernel_slicer, edit apropriate paths in 'run_slicer.sh' file or use VS Code config for this sample from [kernel_slicer](https://github.com/Ray-Tracing-Systems/kernel_slicer) repo. 
+* If you are going to work with this sample via kernel_slicer, edit appropriate paths in 'run_slicer.sh' file or use VS Code config for this sample from [kernel_slicer](https://github.com/Ray-Tracing-Systems/kernel_slicer) repo. 
 
 ## Dependencies
 ### Vulkan 
