@@ -38,7 +38,7 @@ class SimpleRender : public IRender
 public:
   const std::string VERTEX_SHADER_PATH   = "../resources/shaders/simple.vert";
   const std::string FRAGMENT_SHADER_PATH = "../resources/shaders/simple.frag";
-  const bool        ENABLE_HARDWARE_RT   = false;
+  const bool        ENABLE_HARDWARE_RT   = true;
 
   SimpleRender(uint32_t a_width, uint32_t a_height);
   ~SimpleRender()  { Cleanup(); };
