@@ -124,7 +124,8 @@ uint32_t EmbreeRT::AddGeom_Triangles4f(const LiteMath::float4* a_vpos4f, size_t 
   auto meshScene = rtcNewScene(m_device);
   rtcSetSceneBuildQuality(meshScene, RTC_BUILD_QUALITY_HIGH);
   
-  uint32_t geomId = rtcAttachGeometry(meshScene, geom); 
+  /*uint32_t geomId = */
+  rtcAttachGeometry(meshScene, geom);
   rtcReleaseGeometry(geom);
   m_blas.push_back(meshScene);
 

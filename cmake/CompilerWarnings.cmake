@@ -44,6 +44,7 @@ function(set_project_warnings project_name)
       -Wall
       -Wno-unused-parameter
       -Wno-unknown-pragmas
+      -Wno-duplicated-branches
       -Wextra # reasonable and standard
       -Wshadow # warn the user if a variable declaration shadows one from a
                # parent context

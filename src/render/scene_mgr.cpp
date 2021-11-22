@@ -350,10 +350,11 @@ void SceneManager::BuildAllBLAS()
     vkGetAccelerationStructureBuildSizesKHR(m_device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                                             &buildInfos[idx], &m_blasOffsetInfo[idx].primitiveCount, &sizeInfo);
 
-    vk_rt_utils::createAccelerationStructure(m_blas[idx], VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
-                                             sizeInfo, m_device, m_physDevice);
+    m_blas[idx] = vk_rt_utils::createAccelStruct(m_device, VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR, sizeInfo);
     maxScratch = std::max(maxScratch, sizeInfo.buildScratchSize);
   }
+
+  m_blasMem = vk_rt_utils::allocAndGetAddressAccelStructs(m_device, m_physDevice, m_blas);
 
   vk_rt_utils::RTScratchBuffer scratchBuffer = vk_rt_utils::allocScratchBuffer(m_device, m_physDevice, maxScratch);
 
@@ -368,7 +369,6 @@ void SceneManager::BuildAllBLAS()
     buildInfos[idx].scratchData.deviceAddress = scratchBuffer.deviceAddress;
 
     std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> pBuildOffset(m_blasOffsetInfo.size());
-    //    for(size_t infoIdx = 0; infoIdx < m_blasOffsetInfo.size(); infoIdx++)
     pBuildOffset[0] = &m_blasOffsetInfo[idx];
 
     vkCmdBuildAccelerationStructuresKHR(allCmdBufs[idx], 1, &buildInfos[idx], pBuildOffset.data());
@@ -475,8 +475,9 @@ void SceneManager::BuildTLAS()
                                           &sizeInfo);
 
 
-  vk_rt_utils::createAccelerationStructure(m_tlas, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
-                                           sizeInfo, m_device, m_physDevice);
+  m_tlas = vk_rt_utils::createAccelStruct(m_device, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR, sizeInfo);
+
+  m_tlasMem = vk_rt_utils::allocAndGetAddressAccelStruct(m_device, m_physDevice, m_tlas);
 
   vk_rt_utils::RTScratchBuffer scratchBuffer = vk_rt_utils::allocScratchBuffer(m_device, m_physDevice,
                                                                                sizeInfo.buildScratchSize);

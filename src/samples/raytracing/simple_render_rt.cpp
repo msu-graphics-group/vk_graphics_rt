@@ -150,7 +150,7 @@ void SimpleRender::RayTraceGPU()
 
       VkImageMemoryBarrier transferImage;
       transferImage.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      transferImage.pNext               = NULL;
+      transferImage.pNext               = nullptr;
       transferImage.srcAccessMask       = 0;
       transferImage.dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
       transferImage.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -192,7 +192,7 @@ void SimpleRender::RayTraceGPU()
     {
       VkImageMemoryBarrier transferImage;
       transferImage.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      transferImage.pNext               = NULL;
+      transferImage.pNext               = nullptr;
       transferImage.srcAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
       transferImage.dstAccessMask       = VK_ACCESS_SHADER_READ_BIT;
       transferImage.oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;

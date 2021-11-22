@@ -112,6 +112,8 @@ private:
   std::vector<VkAccelerationStructureGeometryKHR> m_blasGeom;
   std::vector<VkAccelerationStructureBuildRangeInfoKHR> m_blasOffsetInfo;
   std::vector<vk_rt_utils::AccelStructure> m_blas;
+  VkDeviceMemory m_blasMem = VK_NULL_HANDLE;
+  VkDeviceMemory m_tlasMem = VK_NULL_HANDLE;
 
   vk_rt_utils::AccelStructure m_tlas{};
 
