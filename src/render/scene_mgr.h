@@ -168,8 +168,6 @@ private:
   VkQueue  m_graphicsQ   = VK_NULL_HANDLE;
   std::shared_ptr<vk_utils::ICopyEngine> m_pCopyHelper;
 
-  std::unique_ptr<vk_rt_utils::AccelStructureBuilder> m_pBuilder;
-
   std::unique_ptr<vk_rt_utils::AccelStructureBuilderV2> m_pBuilderV2;
 
   std::vector<vk_rt_utils::BLASBuildInput> m_blasData;

@@ -2,6 +2,27 @@
 
 ISceneObject* CreateVulkanRTX(std::shared_ptr<SceneManager> a_pScnMgr) { return new VulkanRTX(a_pScnMgr); }
 
+ISceneObject* CreateVulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t a_transferQId, uint32_t a_graphicsQId)
+{
+  LoaderConfig conf = {};
+  conf.load_geometry = true;
+  conf.load_materials = MATERIAL_LOAD_MODE::NONE;
+  conf.build_acc_structs = true;
+  conf.build_acc_structs_while_loading_scene = true;
+  conf.builder_type = BVH_BUILDER_TYPE::RTX;
+
+  static constexpr uint64_t STAGING_MEM_SIZE = 16 * 16 * 1024u;
+  VkQueue queue;
+  vkGetDeviceQueue(a_device, a_graphicsQId, 0, &queue);
+
+  auto copyHelper = std::make_shared<vk_utils::PingPongCopyHelper>(a_physDevice, a_device, queue,
+    a_graphicsQId, STAGING_MEM_SIZE);
+
+  auto mgr =  std::make_shared<SceneManager>(a_device, a_physDevice, a_graphicsQId, copyHelper, conf);
+
+  return new VulkanRTX(mgr);
+}
+
 VulkanRTX::VulkanRTX(std::shared_ptr<SceneManager> a_pScnMgr) : m_pScnMgr(a_pScnMgr)
 {
 }

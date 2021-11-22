@@ -149,7 +149,8 @@ protected:
   VkSampler                m_rtImageSampler = VK_NULL_HANDLE;
 
   std::shared_ptr<ISceneObject> m_pAccelStruct = nullptr;
-  std::unique_ptr<RayTracer_GPU> m_pRayTracer;
+  std::unique_ptr<RayTracer> m_pRayTracerCPU;
+  std::unique_ptr<RayTracer_GPU> m_pRayTracerGPU;
   void RayTraceCPU();
   void RayTraceGPU();
 

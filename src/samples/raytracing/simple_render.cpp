@@ -401,7 +401,8 @@ void SimpleRender::RecreateSwapChain()
 
   // *** ray tracing resources
   m_raytracedImageData.resize(m_width * m_height);
-  m_pRayTracer = nullptr;
+  m_pRayTracerCPU = nullptr;
+  m_pRayTracerGPU = nullptr;
   SetupRTImage();
   SetupQuadRenderer();
   SetupQuadDescriptors();
@@ -636,8 +637,12 @@ void SimpleRender::Cleanup()
     m_uboAlloc = VK_NULL_HANDLE;
   }
 
+  m_pRayTracerCPU = nullptr;
+  m_pRayTracerGPU = nullptr;
+
   m_pBindings = nullptr;
   m_pScnMgr   = nullptr;
+  m_pCopyHelper = nullptr;
 
   if(m_device != VK_NULL_HANDLE)
   {

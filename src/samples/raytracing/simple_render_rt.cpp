@@ -80,19 +80,19 @@ void SimpleRender::SetupRTScene()
 // perform ray tracing on the CPU and upload resulting image on the GPU
 void SimpleRender::RayTraceCPU()
 {
-  if(!m_pRayTracer)
+  if(!m_pRayTracerCPU)
   {
-    m_pRayTracer = std::make_unique<RayTracer_GPU>(m_width, m_height);
-    m_pRayTracer->SetScene(m_pAccelStruct);
+    m_pRayTracerCPU = std::make_unique<RayTracer>(m_width, m_height);
+    m_pRayTracerCPU->SetScene(m_pAccelStruct);
   }
 
-  m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
+  m_pRayTracerCPU->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
 #pragma omp parallel for default(none)
   for (size_t j = 0; j < m_height; ++j)
   {
     for (size_t i = 0; i < m_width; ++i)
     {
-      m_pRayTracer->CastSingleRay(i, j, m_raytracedImageData.data());
+      m_pRayTracerCPU->CastSingleRay(i, j, m_raytracedImageData.data());
     }
   }
 
@@ -101,11 +101,11 @@ void SimpleRender::RayTraceCPU()
 
 void SimpleRender::RayTraceGPU()
 {
-  if(!m_pRayTracer)
+  if(!m_pRayTracerGPU)
   {
-    m_pRayTracer = std::make_unique<RayTracer_GPU>(m_width, m_height);
-    m_pRayTracer->InitVulkanObjects(m_device, m_physicalDevice, m_width * m_height);
-    m_pRayTracer->InitMemberBuffers();
+    m_pRayTracerGPU = std::make_unique<RayTracer_GPU>(m_width, m_height);
+    m_pRayTracerGPU->InitVulkanObjects(m_device, m_physicalDevice, m_width * m_height);
+    m_pRayTracerGPU->InitMemberBuffers();
 
     const size_t bufferSize1 = m_width * m_height * sizeof(uint32_t);
 
@@ -115,13 +115,13 @@ void SimpleRender::RayTraceGPU()
     auto tmp = std::make_shared<VulkanRTX>(m_pScnMgr);
     tmp->CommitScene();
 
-    m_pRayTracer->SetScene(tmp);
-    m_pRayTracer->SetVulkanInOutFor_CastSingleRay(m_genColorBuffer, 0);
-    m_pRayTracer->UpdateAll(m_pCopyHelper);
+    m_pRayTracerGPU->SetScene(tmp);
+    m_pRayTracerGPU->SetVulkanInOutFor_CastSingleRay(m_genColorBuffer, 0);
+    m_pRayTracerGPU->UpdateAll(m_pCopyHelper);
   }
 
-  m_pRayTracer->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
-  m_pRayTracer->UpdatePlainMembers(m_pCopyHelper);
+  m_pRayTracerGPU->UpdateView(m_cam.pos, m_inverseProjViewMatrix);
+  m_pRayTracerGPU->UpdatePlainMembers(m_pCopyHelper);
   
   // do ray tracing
   //
@@ -133,7 +133,7 @@ void SimpleRender::RayTraceGPU()
     beginCommandBufferInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     vkBeginCommandBuffer(commandBuffer, &beginCommandBufferInfo);
-    m_pRayTracer->CastSingleRayCmd(commandBuffer, m_width, m_height, nullptr);
+    m_pRayTracerGPU->CastSingleRayCmd(commandBuffer, m_width, m_height, nullptr);
     
     // prepare buffer and image for copy command
     {

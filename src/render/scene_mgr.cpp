@@ -422,6 +422,7 @@ void SceneManager::DrawMarkedInstances()
 SceneManager::~SceneManager()
 {
   DestroyScene();
+  m_pBuilderV2 = nullptr;
   if(m_pool != VK_NULL_HANDLE)
   {
     vkDestroyCommandPool(m_device, m_pool, nullptr);
@@ -513,7 +514,9 @@ void SceneManager::DestroyScene()
   }
 
   if(m_config.build_acc_structs)
+  {
     m_pBuilderV2->Destroy();
+  }
 
   m_loadedVertices        = 0;
   m_loadedIndices         = 0;
