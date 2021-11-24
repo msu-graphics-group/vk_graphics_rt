@@ -326,7 +326,7 @@ void SimpleRender::BuildCommandBufferQuad(VkCommandBuffer a_cmdBuff, VkImageView
 
   VK_CHECK_RESULT(vkBeginCommandBuffer(a_cmdBuff, &beginInfo));
   {
-    float scaleAndOffset[4] = { 0.5f, 0.5f, -0.5f, +0.5f };
+    float scaleAndOffset[4] = { float(m_width), float(m_height), 0.0f, 0.0f };
     m_pFSQuad->SetRenderTarget(a_targetImageView);
     m_pFSQuad->DrawCmd(a_cmdBuff, m_quadDS, scaleAndOffset);
   }
@@ -405,7 +405,7 @@ void SimpleRender::RecreateSwapChain()
   m_pRayTracerGPU = nullptr;
   SetupRTImage();
   SetupQuadRenderer();
-  SetupQuadDescriptors();
+  //SetupQuadDescriptors();
   //
 
   m_pGUIRender->OnSwapchainChanged(m_swapchain);
@@ -489,7 +489,7 @@ void SimpleRender::LoadScene(const char* path)
   CreateUniformBuffer();
 
   SetupSimplePipeline();
-  SetupQuadDescriptors();
+  //SetupQuadDescriptors();
 
 //  auto loadedCam = m_pScnMgr->GetCamera(0);
 //  m_cam.fov = loadedCam.fov;
