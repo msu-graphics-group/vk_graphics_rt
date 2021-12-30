@@ -12,6 +12,11 @@
 #ifndef uint32_t
 #define uint32_t uint
 #endif
+#define MAXFLOAT 1e37f
+#define MINFLOAT 1e37f
+#define FLT_MAX 1e37f
+#define FLT_MIN -1e37f
+#define FLT_EPSILON 1e-6f;
 struct CRT_Hit 
 {
   float    t;         ///< intersection distance from ray origin to object

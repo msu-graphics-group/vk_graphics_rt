@@ -13,6 +13,8 @@ class VulkanRTX : public ISceneObject
 {
 public:
   VulkanRTX(std::shared_ptr<SceneManager> a_pScnMgr);
+  VulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t a_graphicsQId, std::shared_ptr<vk_utils::ICopyEngine> a_pCopyHelper,
+            uint32_t maxMeshes, uint32_t maxTotalVertices, uint32_t maxTotalPrimitives, uint32_t maxPrimitivesPerMesh, bool build_as_add);
   ~VulkanRTX();
   void ClearGeom() override;
   
@@ -33,9 +35,8 @@ public:
   void SetSceneAccelStruct(VkAccelerationStructureKHR handle) { m_accel = handle; }
   VkAccelerationStructureKHR GetSceneAccelStruct() const { return m_accel; }
 
+  static constexpr size_t VERTEX_SIZE = sizeof(float) * 4;
 protected:
-  VkAccelerationStructureKHR m_accel;
+  VkAccelerationStructureKHR m_accel = VK_NULL_HANDLE;
   std::shared_ptr<SceneManager> m_pScnMgr;
-  uint32_t m_meshTop;
 };
-

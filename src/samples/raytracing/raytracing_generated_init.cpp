@@ -4,8 +4,9 @@
 #include <limits>
 
 #include <cassert>
+#include "vk_copy.h"
+#include "vk_context.h"
 
-#include "vulkan_basics.h"
 #include "raytracing_generated.h"
 #include "include/RayTracer_ubo.h"
 
@@ -20,10 +21,14 @@ static uint32_t ComputeReductionAuxBufferElements(uint32_t whole_size, uint32_t 
   return sizeTotal;
 }
 
+VkBufferUsageFlags RayTracer_Generated::GetAdditionalFlagsForUBO() const
+{
+  return 0;
+}
+
 RayTracer_Generated::~RayTracer_Generated()
 {
   m_pMaker = nullptr;
-
   vkDestroyDescriptorSetLayout(device, CastSingleRayMegaDSLayout, nullptr);
   CastSingleRayMegaDSLayout = VK_NULL_HANDLE;
 
@@ -41,8 +46,7 @@ RayTracer_Generated::~RayTracer_Generated()
   vkDestroyBuffer(device, m_classDataBuffer, nullptr);
 
 
-  FreeMemoryForMemberBuffersAndImages();
-  FreeMemoryForInternalBuffers();
+  FreeAllAllocations(m_allMems);
 }
 
 void RayTracer_Generated::InitHelpers()
@@ -186,13 +190,12 @@ void RayTracer_Generated::InitBuffers(size_t a_maxThreadsCount, bool a_tempBuffe
   m_classDataBuffer = vk_utils::createBuffer(device, sizeof(m_uboData),  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | GetAdditionalFlagsForUBO());
   allBuffersRef.push_back(m_classDataBuffer);
   
-  AllocMemoryForInternalBuffers(allBuffersRef);
-
+  auto internalBuffersMem = AllocAndBind(allBuffersRef);
   if(a_tempBuffersOverlay)
   {
     for(size_t i=0;i<groups.size();i++)
       if(i != largestIndex)
-        AssignBuffersToMemory(groups[i].bufsClean, m_allMem);
+        AssignBuffersToMemory(groups[i].bufsClean, internalBuffersMem.memObject);
   }
 }
 
@@ -208,14 +211,6 @@ void RayTracer_Generated::InitMemberBuffers()
 
 
 
-
-void RayTracer_Generated::AllocMemoryForInternalBuffers(const std::vector<VkBuffer>& a_buffers)
-{
-  if(a_buffers.size() > 0)
-    m_allMem = vk_utils::allocateAndBindWithPadding(device, physicalDevice, a_buffers);
-  else
-    m_allMem = VK_NULL_HANDLE;
-}
 
 void RayTracer_Generated::AssignBuffersToMemory(const std::vector<VkBuffer>& a_buffers, VkDeviceMemory a_mem)
 {
@@ -251,30 +246,67 @@ void RayTracer_Generated::AssignBuffersToMemory(const std::vector<VkBuffer>& a_b
   }
 }
 
+RayTracer_Generated::MemLoc RayTracer_Generated::AllocAndBind(const std::vector<VkBuffer>& a_buffers)
+{
+  MemLoc currLoc;
+  if(a_buffers.size() > 0)
+  {
+    currLoc.memObject = vk_utils::allocateAndBindWithPadding(device, physicalDevice, a_buffers);
+    currLoc.allocId   = m_allMems.size();
+    m_allMems.push_back(currLoc);
+  }
+  return currLoc;
+}
+
+RayTracer_Generated::MemLoc RayTracer_Generated::AllocAndBind(const std::vector<VkImage>& a_images)
+{
+  MemLoc currLoc;
+  if(a_images.size() > 0)
+  {
+    std::vector<VkMemoryRequirements> reqs(a_images.size()); 
+    for(size_t i=0; i<reqs.size(); i++)
+      vkGetImageMemoryRequirements(device, a_images[i], &reqs[i]);
+
+    for(size_t i=0; i<reqs.size(); i++)
+    {
+      if(reqs[i].memoryTypeBits != reqs[0].memoryTypeBits)
+      {
+        std::cout << "RayTracer_Generated::AllocAndBind(textures): memoryTypeBits warning, need to split mem allocation (override me)" << std::endl;
+        break;
+      }
+    } 
+
+    auto offsets  = vk_utils::calculateMemOffsets(reqs);
+    auto memTotal = offsets[offsets.size() - 1];
+
+    VkMemoryAllocateInfo allocateInfo = {};
+    allocateInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocateInfo.pNext           = nullptr;
+    allocateInfo.allocationSize  = memTotal;
+    allocateInfo.memoryTypeIndex = vk_utils::findMemoryType(reqs[0].memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice);
+    VK_CHECK_RESULT(vkAllocateMemory(device, &allocateInfo, NULL, &currLoc.memObject));
+    
+    for(size_t i=0;i<a_images.size();i++) {
+      VK_CHECK_RESULT(vkBindImageMemory(device, a_images[i], currLoc.memObject, offsets[i]));
+    }
+
+    currLoc.allocId = m_allMems.size();
+    m_allMems.push_back(currLoc);
+  }
+  return currLoc;
+}
+
+void RayTracer_Generated::FreeAllAllocations(std::vector<MemLoc>& a_memLoc)
+{
+  // in general you may check 'mem.allocId' for unique to be sure you dont free mem twice
+  // for default implementation this is not needed
+  for(auto mem : a_memLoc)
+    vkFreeMemory(device, mem.memObject, nullptr);
+  a_memLoc.resize(0);
+}     
+
 void RayTracer_Generated::AllocMemoryForMemberBuffersAndImages(const std::vector<VkBuffer>& a_buffers, const std::vector<VkImage>& a_images)
 {
-  if(a_buffers.size() > 0)
-    m_vdata.m_vecMem = vk_utils::allocateAndBindWithPadding(device, physicalDevice, a_buffers);
-  else
-    m_vdata.m_vecMem = VK_NULL_HANDLE;
-  
-  m_vdata.m_texMem = VK_NULL_HANDLE;
-}
-
-void RayTracer_Generated::FreeMemoryForInternalBuffers()
-{
-  if(m_allMem != VK_NULL_HANDLE)
-    vkFreeMemory(device, m_allMem, nullptr);
-  m_allMem = VK_NULL_HANDLE;
-}
-
-void RayTracer_Generated::FreeMemoryForMemberBuffersAndImages()
-{
-  if(m_vdata.m_vecMem != VK_NULL_HANDLE)
-    vkFreeMemory(device, m_vdata.m_vecMem, nullptr);
-  m_vdata.m_vecMem = VK_NULL_HANDLE;
-  if(m_vdata.m_texMem != VK_NULL_HANDLE)
-    vkFreeMemory(device, m_vdata.m_texMem, nullptr);
-  m_vdata.m_texMem = VK_NULL_HANDLE;
+  AllocAndBind(a_buffers);
 }
 

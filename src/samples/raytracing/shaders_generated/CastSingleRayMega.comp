@@ -79,7 +79,7 @@ void kernel_InitEyeRay(uint tidX, uint tidY, inout vec4 rayPosAndNear, inout vec
   rayPosAndNear = ubo.m_camPos; // to_float4(m_camPos, 1.0f);
   
   const vec3 rayDir = EyeRayDir(float(tidX), float(tidY), float(ubo.m_width), float(ubo.m_height), ubo.m_invProjView);
-  rayDirAndFar  = vec4(rayDir, MAXFLOAT);
+  rayDirAndFar  = vec4(rayDir, FLT_MAX);
 
 }
 
@@ -90,9 +90,6 @@ void main()
   ///////////////////////////////////////////////////////////////// prolog
   const uint tidX = uint(gl_GlobalInvocationID[0]); 
   const uint tidY = uint(gl_GlobalInvocationID[1]); 
-  const vec4 m_camPos = ubo.m_camPos;
-  const uint m_height = ubo.m_height;
-  const uint m_width = ubo.m_width;
   ///////////////////////////////////////////////////////////////// prolog
 
   

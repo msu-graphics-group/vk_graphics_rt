@@ -4,8 +4,9 @@
 #include <limits>
 
 #include <cassert>
+#include "vk_copy.h"
+#include "vk_context.h"
 
-#include "vulkan_basics.h"
 #include "raytracing_generated.h"
 
 #include "VulkanRTX.h"
@@ -50,7 +51,7 @@ void RayTracer_Generated::InitAllGeneratedDescriptorSets_CastSingleRay()
     constexpr uint additionalSize = 1;
 
     std::array<VkDescriptorBufferInfo, 2 + additionalSize> descriptorBufferInfo;
-//    std::array<VkDescriptorImageInfo,  2 + additionalSize> descriptorImageInfo;
+    std::array<VkDescriptorImageInfo,  2 + additionalSize> descriptorImageInfo;
     std::array<VkAccelerationStructureKHR,  2 + additionalSize> accelStructs;
     std::array<VkWriteDescriptorSetAccelerationStructureKHR,  2 + additionalSize> descriptorAccelInfo;
     std::array<VkWriteDescriptorSet,   2 + additionalSize> writeDescriptorSet;

@@ -400,7 +400,7 @@ void SceneManager::LoadMaterialDataOnGPU()
         if(tex.mipLvls > 1)
         {
           auto cmdBuf = vk_utils::createCommandBuffer(m_device, m_pool);
-          vk_utils::generateMipChainCmd(cmdBuf, tex, texInfo.width, texInfo.height, tex.mipLvls);
+          vk_utils::generateMipChainCmd(cmdBuf, tex.image, texInfo.width, texInfo.height, tex.mipLvls);
           vk_utils::executeCommandBufferNow(cmdBuf, m_graphicsQ, m_device);
         }
         m_textureViews.push_back(tex.view);
@@ -530,6 +530,7 @@ void SceneManager::DestroyScene()
 
   m_materials.clear();
 
+  m_textures.clear();
   m_textureInfos.clear();
   m_textureViews.clear();
   m_samplers.clear();

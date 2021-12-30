@@ -2,17 +2,26 @@
 #include <memory>
 #include <limits>
 #include <cassert>
+#include <chrono>
 
-#include "vulkan_basics.h"
+#include "vk_copy.h"
+#include "vk_context.h"
+#include "vk_images.h"
+
 #include "raytracing_generated.h"
 #include "include/RayTracer_ubo.h"
 
 #include "CrossRT.h"
-ISceneObject* CreateVulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t a_transferQId, uint32_t a_graphicsQId);
+ISceneObject* CreateVulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t a_graphicsQId, std::shared_ptr<vk_utils::ICopyEngine> a_pCopyHelper,
+                              uint32_t a_maxMeshes, uint32_t a_maxTotalVertices, uint32_t a_maxTotalPrimitives, uint32_t a_maxPrimitivesPerMesh,
+                              bool build_as_add);
 
-VkBufferUsageFlags RayTracer_Generated::GetAdditionalFlagsForUBO() const
-{
-  return 0;
+std::shared_ptr<RayTracer> CreateRayTracer_Generated(uint32_t a_width, uint32_t a_height, vk_utils::VulkanContext a_ctx, size_t a_maxThreadsGenerated) 
+{ 
+  auto pObj = std::make_shared<RayTracer_Generated>(a_width, a_height); 
+  pObj->SetVulkanContext(a_ctx);
+  pObj->InitVulkanObjects(a_ctx.device, a_ctx.physicalDevice, a_maxThreadsGenerated); 
+  return pObj;
 }
 
 static uint32_t ComputeReductionSteps(uint32_t whole_size, uint32_t wg_size)
@@ -26,6 +35,12 @@ static uint32_t ComputeReductionSteps(uint32_t whole_size, uint32_t wg_size)
   return steps;
 }
 
+constexpr uint32_t KGEN_FLAG_RETURN            = 1;
+constexpr uint32_t KGEN_FLAG_BREAK             = 2;
+constexpr uint32_t KGEN_FLAG_DONT_SET_EXIT     = 4;
+constexpr uint32_t KGEN_FLAG_SET_EXIT_NEGATIVE = 8;
+constexpr uint32_t KGEN_REDUCTION_LAST_STEP    = 16;
+
 void RayTracer_Generated::InitVulkanObjects(VkDevice a_device, VkPhysicalDevice a_physicalDevice, size_t a_maxThreadsCount) 
 {
   physicalDevice = a_physicalDevice;
@@ -34,11 +49,21 @@ void RayTracer_Generated::InitVulkanObjects(VkDevice a_device, VkPhysicalDevice 
   InitBuffers(a_maxThreadsCount, true);
   InitKernels(".spv");
   AllocateAllDescriptorSets();
+
+  auto queueAllFID = vk_utils::getQueueFamilyIndex(physicalDevice, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT);
+  //@TODO: calculate these somehow?
+  uint32_t maxMeshes = 1024;
+  uint32_t maxTotalVertices = 1'000'000;
+  uint32_t maxTotalPrimitives = 1'000'000;
+  uint32_t maxPrimitivesPerMesh = 200'000;
+  m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateVulkanRTX(a_device, a_physicalDevice, queueAllFID, m_ctx.pCopyHelper,
+                                                             maxMeshes, maxTotalVertices, maxTotalPrimitives, maxPrimitivesPerMesh, true),
+                                                            [](ISceneObject *p) { DeleteSceneRT(p); } );
 }
 
 void RayTracer_Generated::UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine)
 {
-//  const size_t maxAllowedSize = std::numeric_limits<uint32_t>::max();
+  const size_t maxAllowedSize = std::numeric_limits<uint32_t>::max();
 
   m_uboData.m_invProjView = m_invProjView;
   m_uboData.m_camPos = m_camPos;
@@ -46,6 +71,7 @@ void RayTracer_Generated::UpdatePlainMembers(std::shared_ptr<vk_utils::ICopyEngi
   m_uboData.m_width = m_width;
   a_pCopyEngine->UpdateBuffer(m_classDataBuffer, 0, &m_uboData, sizeof(m_uboData));
 }
+
 
 void RayTracer_Generated::UpdateVectorMembers(std::shared_ptr<vk_utils::ICopyEngine> a_pCopyEngine)
 {
@@ -69,10 +95,10 @@ void RayTracer_Generated::CastSingleRayMegaCmd(uint32_t tidX, uint32_t tidY, uin
     uint32_t m_tFlags;
   } pcData;
   
-  uint32_t sizeX  = uint32_t(std::abs(int32_t(tidX) - int32_t(0)));
-  uint32_t sizeY  = uint32_t(std::abs(int32_t(tidY) - int32_t()));
-  uint32_t sizeZ  = uint32_t(std::abs(int32_t(1) - int32_t(0)));
-
+  uint32_t sizeX  = uint32_t(tidX);
+  uint32_t sizeY  = uint32_t(tidY);
+  uint32_t sizeZ  = uint32_t(1);
+  
   pcData.m_sizeX  = tidX;
   pcData.m_sizeY  = tidY;
   pcData.m_sizeZ  = 1;
