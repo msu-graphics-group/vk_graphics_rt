@@ -1,4 +1,4 @@
-#run_slicer.sh
+# run_slicer.sh
 curr_directory=$(pwd)
 kslicer_dir="../../kernel_slicer" 
 kslicer_exe="build/kslicer" 
