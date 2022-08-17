@@ -39,9 +39,6 @@ RayTracer_Generated::~RayTracer_Generated()
   vkDestroyDescriptorSetLayout(device, copyKernelFloatDSLayout, nullptr);
   vkDestroyDescriptorPool(device, m_dsPool, NULL); m_dsPool = VK_NULL_HANDLE;
 
-  vkDestroyBuffer(device, CastSingleRay_local.rayDirAndFarBuffer, nullptr);
-  vkDestroyBuffer(device, CastSingleRay_local.rayPosAndNearBuffer, nullptr);
-
  
   vkDestroyBuffer(device, m_classDataBuffer, nullptr);
 
@@ -157,19 +154,6 @@ void RayTracer_Generated::InitBuffers(size_t a_maxThreadsCount, bool a_tempBuffe
   std::vector<LocalBuffers> groups;
   groups.reserve(16);
 
-  LocalBuffers localBuffersCastSingleRay;
-  localBuffersCastSingleRay.bufs.reserve(32);
-  CastSingleRay_local.rayDirAndFarBuffer = vk_utils::createBuffer(device, sizeof(LiteMath::float4)*a_maxThreadsCount, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-  localBuffersCastSingleRay.bufs.push_back(BufferReqPair(CastSingleRay_local.rayDirAndFarBuffer, device));
-  CastSingleRay_local.rayPosAndNearBuffer = vk_utils::createBuffer(device, sizeof(LiteMath::float4)*a_maxThreadsCount, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-  localBuffersCastSingleRay.bufs.push_back(BufferReqPair(CastSingleRay_local.rayPosAndNearBuffer, device));
-  for(const auto& pair : localBuffersCastSingleRay.bufs)
-  {
-    allBuffers.push_back(pair.buf);
-    localBuffersCastSingleRay.size += pair.req.size;
-  }
-  groups.push_back(localBuffersCastSingleRay);
-
 
   size_t largestIndex = 0;
   size_t largestSize  = 0;
@@ -184,8 +168,8 @@ void RayTracer_Generated::InitBuffers(size_t a_maxThreadsCount, bool a_tempBuffe
     for(size_t j=0;j<groups[i].bufsClean.size();j++)
       groups[i].bufsClean[j] = groups[i].bufs[j].buf;
   }
-
-  auto& allBuffersRef = a_tempBuffersOverlay ? groups[largestIndex].bufsClean : allBuffers;
+  
+  auto& allBuffersRef = allBuffers;
 
   m_classDataBuffer = vk_utils::createBuffer(device, sizeof(m_uboData),  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | GetAdditionalFlagsForUBO());
   allBuffersRef.push_back(m_classDataBuffer);

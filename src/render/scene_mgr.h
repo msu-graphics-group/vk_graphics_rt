@@ -10,9 +10,6 @@
 #include <vk_images.h>
 
 #include "../loader_utils/hydraxml.h"
-#include "../loader_utils/image_loader.h"
-#include "tiny_gltf.h"
-#include "../resources/shaders/common.h"
 
 
 struct InstanceInfo
@@ -45,6 +42,12 @@ enum class MATERIAL_LOAD_MODE
   MATERIALS_AND_TEXTURES
 };
 
+enum class MESH_FORMATS
+{
+  MESH_4F,
+  MESH_8F,
+};
+
 struct LoaderConfig
 {
   bool load_geometry = true;
@@ -55,6 +58,7 @@ struct LoaderConfig
   bool debug_output = false;
   BVH_BUILDER_TYPE builder_type = BVH_BUILDER_TYPE::RTX;
   MATERIAL_FORMAT material_format = MATERIAL_FORMAT::METALLIC_ROUGHNESS;
+  MESH_FORMATS mesh_format = MESH_FORMATS::MESH_8F;
 };
 
 struct SceneManager
@@ -64,7 +68,6 @@ struct SceneManager
   ~SceneManager();
 
   bool LoadSceneXML(const std::string &scenePath, bool transpose = true);
-  bool LoadSceneGLTF(const std::string &scenePath);
   bool LoadScene(const std::string &scenePath); // guess scene type by extension
 //  void LoadSingleTriangle(); // TODO: rework
 
@@ -72,6 +75,7 @@ struct SceneManager
 
   uint32_t AddMeshFromFile(const std::string& meshPath);
   uint32_t AddMeshFromData(cmesh::SimpleMesh &meshData);
+  uint32_t AddMeshFromDataAndQueueBuildAS(cmesh::SimpleMesh &meshData);
 
   uint32_t InstanceMesh(uint32_t meshId, const LiteMath::float4x4 &matrix, bool markForRender = true);
 
@@ -94,8 +98,6 @@ struct SceneManager
   std::vector<VkSampler> GetTextureSamplers() const { return m_samplers; }
   std::vector<VkImageView>  GetTextureViews() const { return m_textureViews; }
 
-  std::shared_ptr<IMeshData> GetMeshData() {return m_pMeshData; }
-
   uint32_t MeshesNum()    const {return m_meshInfos.size();}
   uint32_t InstancesNum() const {return m_instanceInfos.size();}
 
@@ -112,6 +114,7 @@ struct SceneManager
 
 private:
   const std::string missingTextureImgPath = "../resources/data/missing_texture.png";
+  LoaderConfig m_config;
 
   vk_utils::VulkanImageMem LoadSpecialTexture();
   void InitGeoBuffersGPU(uint32_t a_meshNum, uint32_t a_totalVertNum, uint32_t a_totalIndicesNum);
@@ -119,11 +122,8 @@ private:
   void LoadCommonGeoDataOnGPU();
   void LoadInstanceDataOnGPU();
   void LoadMaterialDataOnGPU();
-
+  void InitMeshCPU(MESH_FORMATS format);
   void AddBLAS(uint32_t meshIdx);
-
-  void LoadGLTFNodesRecursive(const tinygltf::Model &a_model, const tinygltf::Node& a_node, const LiteMath::float4x4& a_parentMatrix,
-    std::unordered_map<int, uint32_t> &a_loadedMeshesToMeshId);
 
   std::vector<MeshInfo> m_meshInfos = {};
   std::shared_ptr<IMeshData> m_pMeshData = nullptr;
@@ -150,8 +150,6 @@ private:
 
   std::vector<uint32_t> m_matIDs;
 
-  std::vector<MaterialData_pbrMR> m_materials;
-  std::vector<ImageFileInfo> m_textureInfos;
   VkBuffer m_materialBuf  = VK_NULL_HANDLE;
   VkDeviceMemory m_matMemAlloc = VK_NULL_HANDLE;
   std::vector<vk_utils::VulkanImageMem> m_textures;
@@ -168,11 +166,12 @@ private:
   VkQueue  m_graphicsQ   = VK_NULL_HANDLE;
   std::shared_ptr<vk_utils::ICopyEngine> m_pCopyHelper;
 
+  std::unique_ptr<vk_rt_utils::AccelStructureBuilder> m_pBuilder;
+
   std::unique_ptr<vk_rt_utils::AccelStructureBuilderV2> m_pBuilderV2;
 
   std::vector<vk_rt_utils::BLASBuildInput> m_blasData;
 
-  LoaderConfig m_config;
   bool m_useRTX = false;
 };
 

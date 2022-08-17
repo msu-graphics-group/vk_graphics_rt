@@ -103,12 +103,6 @@ protected:
 
   struct CastSingleRay_Data
   {
-    VkBuffer rayDirAndFarBuffer = VK_NULL_HANDLE;
-    size_t   rayDirAndFarOffset = 0;
-
-    VkBuffer rayPosAndNearBuffer = VK_NULL_HANDLE;
-    size_t   rayPosAndNearOffset = 0;
-
     VkBuffer out_colorBuffer = VK_NULL_HANDLE;
     size_t   out_colorOffset = 0;
   } CastSingleRay_local;

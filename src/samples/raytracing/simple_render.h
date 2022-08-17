@@ -37,7 +37,7 @@ class SimpleRender : public IRender
 public:
   const std::string VERTEX_SHADER_PATH   = "../resources/shaders/simple.vert";
   const std::string FRAGMENT_SHADER_PATH = "../resources/shaders/simple.frag";
-  const bool        ENABLE_HARDWARE_RT   = false;
+  const bool        ENABLE_HARDWARE_RT   = true;
 
   static constexpr uint64_t STAGING_MEM_SIZE = 16 * 16 * 1024u;
 

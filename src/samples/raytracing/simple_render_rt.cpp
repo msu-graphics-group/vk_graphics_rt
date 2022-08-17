@@ -63,7 +63,7 @@ void SimpleRender::SetupRTScene()
     }
     memcpy(m_indicesReordered.data(), indices, info.m_indNum * sizeof(m_indicesReordered[0]));
 
-    auto geomId = m_pAccelStruct->AddGeom_Triangles4f(m_vPos4f.data(), m_vPos4f.size(), m_indicesReordered.data(), m_indicesReordered.size());
+    auto geomId = m_pAccelStruct->AddGeom_Triangles3f((const float*)m_vPos4f.data(), m_vPos4f.size(), m_indicesReordered.data(), m_indicesReordered.size(), BUILD_HIGH, sizeof(float)*4);
     meshMap[i] = geomId;
   }
 
@@ -113,7 +113,7 @@ void SimpleRender::RayTraceGPU()
     m_colorMem       = vk_utils::allocateAndBindWithPadding(m_device, m_physicalDevice, {m_genColorBuffer});
 
     auto tmp = std::make_shared<VulkanRTX>(m_pScnMgr);
-    tmp->CommitScene();
+    tmp->CommitScene(BUILD_HIGH);
 
     m_pRayTracerGPU->SetScene(tmp);
     m_pRayTracerGPU->SetVulkanInOutFor_CastSingleRay(m_genColorBuffer, 0);

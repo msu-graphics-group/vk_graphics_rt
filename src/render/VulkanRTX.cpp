@@ -1,5 +1,6 @@
 #include "VulkanRTX.h"
 #include "ray_tracing/vk_rt_utils.h"
+#include "vk_utils.h"
 
 ISceneObject* CreateVulkanRTX(std::shared_ptr<SceneManager> a_pScnMgr) { return new VulkanRTX(a_pScnMgr); }
 
@@ -13,8 +14,7 @@ ISceneObject* CreateVulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, 
 
   auto copyHelper = std::make_shared<vk_utils::PingPongCopyHelper>(a_physDevice, a_device, queue, a_graphicsQId, STAGING_MEM_SIZE);
 
-  return new VulkanRTX(a_device, a_physDevice, a_graphicsQId, copyHelper,
-    a_maxMeshes, a_maxTotalVertices, a_maxTotalPrimitives, a_maxPrimitivesPerMesh, build_as_add);
+  return new VulkanRTX(a_device, a_physDevice, a_graphicsQId, copyHelper,a_maxMeshes, a_maxTotalVertices, a_maxTotalPrimitives, a_maxPrimitivesPerMesh, build_as_add);
 }
 
 VulkanRTX::VulkanRTX(std::shared_ptr<SceneManager> a_pScnMgr) : m_pScnMgr(a_pScnMgr)
@@ -31,6 +31,7 @@ VulkanRTX::VulkanRTX(VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t 
   conf.build_acc_structs = true;
   conf.build_acc_structs_while_loading_scene = build_as_add;
   conf.builder_type = BVH_BUILDER_TYPE::RTX;
+  conf.mesh_format  = MESH_FORMATS::MESH_4F;
 
   m_pScnMgr = std::make_shared<SceneManager>(a_device, a_physDevice, a_graphicsQId, a_pCopyHelper, conf);
   m_pScnMgr->InitEmptyScene(a_maxMeshes, a_maxTotalVertices, a_maxTotalPrimitives, a_maxPrimitivesPerMesh);
@@ -44,23 +45,44 @@ VulkanRTX::~VulkanRTX()
 
 void VulkanRTX::ClearGeom()
 {
-  m_pScnMgr->DestroyScene();
+//  m_pScnMgr->DestroyScene();
 }
   
-uint32_t VulkanRTX::AddGeom_Triangles4f(const LiteMath::float4* a_vpos4f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber)
+uint32_t VulkanRTX::AddGeom_Triangles3f(const float* a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber, BuildQuality a_qualityLevel, size_t vByteStride)
 {
+  if(vByteStride == 0)
+    vByteStride = sizeof(float)*3;
+
+  if(vByteStride % 4 != 0)
+  {
+    std::cout << "[VulkanRTX::AddGeom_Triangles3f]: vByteStride must be multiple of sizeof(float), passed value is: " << vByteStride << std::endl;
+    return uint32_t(-1);
+  }
+
   cmesh::SimpleMesh mesh(a_vertNumber, a_indNumber);
-
-  memcpy(mesh.vPos4f.data(), (float*)a_vpos4f, a_vertNumber * VERTEX_SIZE);
-
+  
+  if(vByteStride == sizeof(float)*4)
+    memcpy(mesh.vPos4f.data(), (float*)a_vpos3f, a_vertNumber * VERTEX_SIZE);
+  else
+  {
+    const size_t vStride = vByteStride/sizeof(float);
+    for(size_t i=0;i<a_vertNumber;i++)
+    {
+      mesh.vPos4f[i*4+0] = a_vpos3f[i*vStride+0];
+      mesh.vPos4f[i*4+1] = a_vpos3f[i*vStride+1];
+      mesh.vPos4f[i*4+2] = a_vpos3f[i*vStride+2];
+      mesh.vPos4f[i*4+3] = 1.0f;
+    }
+  }
   memcpy(mesh.indices.data(), a_triIndices, a_indNumber * sizeof(a_triIndices[0]));
 
-  return m_pScnMgr->AddMeshFromData(mesh);
+  auto idx = m_pScnMgr->AddMeshFromDataAndQueueBuildAS(mesh);
+  return idx;
 }
 
-void VulkanRTX::UpdateGeom_Triangles4f(uint32_t a_geomId, const LiteMath::float4* a_vpos4f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber)
+void VulkanRTX::UpdateGeom_Triangles3f(uint32_t a_geomId, const float* a_vpos3f, size_t a_vertNumber, const uint32_t* a_triIndices, size_t a_indNumber,  BuildQuality a_qualityLevel, size_t vByteStride)
 {
-  std::cout << "[VulkanRTX::UpdateGeom_Triangles4f]: not implemented" << std::endl;
+  std::cout << "[VulkanRTX::UpdateGeom_Triangles3f]: not implemented" << std::endl;
 }
 
 void VulkanRTX::ClearScene()
@@ -73,7 +95,7 @@ uint32_t VulkanRTX::AddInstance(uint32_t a_geomId, const LiteMath::float4x4& a_m
   return m_pScnMgr->InstanceMesh(a_geomId, a_matrix);
 }
 
-void VulkanRTX::CommitScene()
+void VulkanRTX::CommitScene(BuildQuality a_qualityLevel)
 {
   m_pScnMgr->BuildTLAS();
   m_accel = m_pScnMgr->GetTLAS();
