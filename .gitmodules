@@ -1,0 +1,18 @@
+[submodule "external/CrossRT"]
+	path = external/CrossRT
+	url = https://github.com/msu-graphics-group/CrossRT.git
+[submodule "external/vkutils"]
+	path = external/vkutils
+	url = https://github.com/msu-graphics-group/vk-utils
+[submodule "external/LiteScene"]
+	path = external/LiteScene
+	url = https://github.com/msu-graphics-group/LiteScene.git
+[submodule "external/LiteMath"]
+	path = external/LiteMath
+	url = https://github.com/msu-graphics-group/LiteMath
+[submodule "external/volk"]
+	path = external/volk
+	url = https://github.com/zeux/volk.git
+[submodule "external/imgui"]
+	path = external/imgui
+	url = https://github.com/ocornut/imgui.git

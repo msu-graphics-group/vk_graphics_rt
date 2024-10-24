@@ -26,8 +26,25 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 endif()
 
 add_compile_definitions(IMGUI_USER_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/src/render/my_imgui_config.h")
-
 add_compile_definitions(USE_VOLK)
+
+##///////////////////////////////////////////////////////////////////////////////////////////////////
+##
+include_directories(SYSTEM ${Vulkan_INCLUDE_DIR})
+include_directories(SYSTEM "external/volk"
+                           "external/LiteMath"
+                           "external/LiteMath/external")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+                    "external"
+                    "external/vkutils"
+                    "external/CrossRT"
+                    "external/LiteScene")
+
+link_directories("external/CrossRT/lib")
+
+##
+##///////////////////////////////////////////////////////////////////////////////////////////////////
+
 ##############################################
 # common sources used by all samples
 
@@ -48,8 +65,8 @@ set(VK_UTILS_SRC
         ${CMAKE_SOURCE_DIR}/external/vkutils/ray_tracing/vk_rt_utils.cpp)
 
 set(SCENE_LOADER_SRC
-        ${CMAKE_SOURCE_DIR}/src/loader_utils/pugixml.cpp
-        ${CMAKE_SOURCE_DIR}/src/loader_utils/hydraxml.cpp
+        ${CMAKE_SOURCE_DIR}/external/LiteScene/pugixml.cpp
+        ${CMAKE_SOURCE_DIR}/external/LiteScene/hydraxml.cpp
         ${CMAKE_SOURCE_DIR}/src/loader_utils/image_loader.cpp
         ${CMAKE_SOURCE_DIR}/src/loader_utils/gltf_utils.cpp)
 

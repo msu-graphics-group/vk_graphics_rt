@@ -9,36 +9,34 @@ else()
     link_directories(${CMAKE_SOURCE_DIR}/external/embree/lib)
 endif()
 
-
-include_directories(${CMAKE_SOURCE_DIR}/external/embree)
-
 find_package(OpenMP)
 
-set(RAYTRACING_EMBREE
-        ../../render/EmbreeRT.cpp)
-
-if(CMAKE_SYSTEM_NAME STREQUAL Windows)
-    set(RAYTRACING_EMBREE_LIBS
-            embree3)
-else()
-    set(RAYTRACING_EMBREE_LIBS
-            embree3 embree_sse42 embree_avx embree_avx2 lexers simd sys tasking)
-endif()
+set(RAYTRACING_EMBREE ${CMAKE_SOURCE_DIR}/external/CrossRT/EmbreeRT.cpp)
 
 set(RENDER_SOURCE
-        ../../render/scene_mgr.cpp
+        ${CMAKE_SOURCE_DIR}/external/LiteScene/scene_mgr.cpp
         ../../render/scene_mgr_loaders.cpp
         ../../render/render_imgui.cpp
         simple_render.cpp
         simple_render_rt.cpp
-        raytracing.cpp
-        )
+        raytracing.cpp)
 
 set(GENERATED_SOURCE
-        ../../render/VulkanRTX.cpp
+        ${CMAKE_SOURCE_DIR}/external/CrossRT/VulkanRTX.cpp
         raytracing_generated.cpp
         raytracing_generated_ds.cpp
         raytracing_generated_init.cpp)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+  link_directories("${CMAKE_SOURCE_DIR}/external/CrossRT/lib_win64")
+  set(EMBREE_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/external/CrossRT/lib_win64/embree3.lib)
+elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  find_package(Threads REQUIRED)
+  set(EMBREE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/CrossRT/lib)
+  link_directories(${EMBREE_DIR})
+  set(EMBREE_LIBS ${EMBREE_DIR}/libembree3.so 
+                  ${EMBREE_DIR}/libtbb.so)
+endif()
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined -fsanitize=bounds-strict")
 
