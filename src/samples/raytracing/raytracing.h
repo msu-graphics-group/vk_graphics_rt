@@ -5,7 +5,7 @@
 #include <memory>
 #include <iostream>
 #include "LiteMath.h"
-#include "render/CrossRT.h"
+#include "CrossRT.h"
 
 class RayTracer
 {

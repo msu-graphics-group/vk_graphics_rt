@@ -3,10 +3,11 @@
 
 #define VK_NO_PROTOTYPES
 
-#include "../../render/scene_mgr.h"
+#include "LiteScene/scene_mgr.h"
 #include "../../render/render_common.h"
 #include "../../render/render_gui.h"
 #include "../../../resources/shaders/common.h"
+
 #include <geom/vk_mesh.h>
 #include <vk_descriptor_sets.h>
 #include <vk_fbuf_attachment.h>
@@ -15,7 +16,8 @@
 #include <vk_swapchain.h>
 #include <string>
 #include <iostream>
-#include <render/CrossRT.h>
+
+#include "CrossRT.h"
 #include "raytracing.h"
 #include "raytracing_generated.h"
 
