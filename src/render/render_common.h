@@ -5,7 +5,6 @@
 #include "vk_utils.h"
 #include "utils/Camera.h"
 #include <cstring>
-#include <memory>
 
 struct AppInput
 {

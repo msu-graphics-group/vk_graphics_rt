@@ -42,6 +42,14 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "(lldb) Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/raytracing",
+            "args": ["aaa", "bbb"],
+            "cwd": "${workspaceFolder}/bin",
         }
         
         
