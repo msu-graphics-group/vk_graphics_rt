@@ -53,17 +53,6 @@ struct Camera
 };
 
 
-// http://matthewwellings.com/blog/the-new-vulkan-coordinate-system/
-//
-static inline float4x4 OpenglToVulkanProjectionMatrixFix()
-{
-  float4x4 res;
-  res[1][1] = -1.0f;
-  res[2][2] = 0.5f;
-  res[2][3] = 0.5f;
-  return res;
-}
-
 static inline float4x4 projectionMatrix(float fovy, float aspect, float zNear, float zFar)
 {
   float4x4 res;

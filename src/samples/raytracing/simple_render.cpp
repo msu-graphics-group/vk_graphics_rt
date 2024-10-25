@@ -1,5 +1,6 @@
 #include "simple_render.h"
 #include "../../utils/input_definitions.h"
+#include "scene_mgr.h"
 
 #include <geom/vk_mesh.h>
 #include <vk_pipeline.h>
@@ -134,12 +135,6 @@ void SimpleRender::InitPresentation(VkSurfaceKHR &a_surface)
                                                               m_width, m_height, m_framesInFlight, m_vsync);
   m_presentationResources.currentFrame = 0;
 
-  VkSemaphoreCreateInfo semaphoreInfo = {};
-  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-  VK_CHECK_RESULT(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_presentationResources.imageAvailable));
-  VK_CHECK_RESULT(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_presentationResources.renderingFinished));
-  m_screenRenderPass = vk_utils::createDefaultRenderPass(m_device, m_swapchain.GetFormat());
-
   std::vector<VkFormat> depthFormats = {
       VK_FORMAT_D32_SFLOAT,
       VK_FORMAT_D32_SFLOAT_S8_UINT,
@@ -148,6 +143,14 @@ void SimpleRender::InitPresentation(VkSurfaceKHR &a_surface)
       VK_FORMAT_D16_UNORM
   };
   vk_utils::getSupportedDepthFormat(m_physicalDevice, depthFormats, &m_depthBuffer.format);
+
+  VkSemaphoreCreateInfo semaphoreInfo = {};
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  VK_CHECK_RESULT(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_presentationResources.imageAvailable));
+  VK_CHECK_RESULT(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_presentationResources.renderingFinished));
+  m_screenRenderPass = vk_utils::createDefaultRenderPass(m_device, m_swapchain.GetFormat(), m_depthBuffer.format);
+
+
   m_depthBuffer  = vk_utils::createDepthTexture(m_device, m_physicalDevice, m_width, m_height, m_depthBuffer.format);
   m_frameBuffers = vk_utils::createFrameBuffers(m_device, m_swapchain, m_screenRenderPass, m_depthBuffer.view);
 
@@ -384,7 +387,7 @@ void SimpleRender::RecreateSwapChain()
   };                                                            
   vk_utils::getSupportedDepthFormat(m_physicalDevice, depthFormats, &m_depthBuffer.format);
   
-  m_screenRenderPass = vk_utils::createDefaultRenderPass(m_device, m_swapchain.GetFormat());
+  m_screenRenderPass = vk_utils::createDefaultRenderPass(m_device, m_swapchain.GetFormat(),m_depthBuffer.format);
   m_depthBuffer      = vk_utils::createDepthTexture(m_device, m_physicalDevice, m_width, m_height, m_depthBuffer.format);
   m_frameBuffers     = vk_utils::createFrameBuffers(m_device, m_swapchain, m_screenRenderPass, m_depthBuffer.view);
 
@@ -464,9 +467,10 @@ void SimpleRender::UpdateView()
   m_inverseProjViewMatrix = LiteMath::inverse4x4(m_projectionMatrix * transpose(inverse4x4(mLookAt)));
 }
 
+
 void SimpleRender::LoadScene(const char* path)
 {
-  m_pScnMgr->LoadScene(path);
+  m_pScnMgr->LoadSceneXML(path, false);
   if(ENABLE_HARDWARE_RT)
   {
     m_pScnMgr->BuildAllBLAS();

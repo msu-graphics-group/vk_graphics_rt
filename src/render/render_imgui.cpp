@@ -1,3 +1,4 @@
+#include "backends/imgui_impl_vulkan.h"
 #include "render_gui.h"
 #include <vk_utils.h>
 #include <vk_descriptor_sets.h>
@@ -29,20 +30,6 @@ void ImGuiRender::InitImGui()
 
   m_descriptorPool = vk_utils::createDescriptorPool(m_device, descrTypes, (uint32_t)descrTypes.size() * 1000);
 
-  ImGui_ImplVulkan_InitInfo init_info {};
-
-  init_info.Instance       = m_instance;
-  init_info.PhysicalDevice = m_physDevice;
-  init_info.Device         = m_device;
-  init_info.QueueFamily    = m_queue_FID;
-  init_info.Queue          = m_queue;
-  init_info.PipelineCache  = VK_NULL_HANDLE;
-  init_info.DescriptorPool = m_descriptorPool;
-  init_info.Allocator      = VK_NULL_HANDLE;
-  init_info.MinImageCount  = m_swapchain->GetMinImageCount();
-  init_info.ImageCount     = m_swapchain->GetImageCount();
-  init_info.CheckVkResultFn = nullptr;
-
   vk_utils::RenderTargetInfo2D rtInfo = {};
   rtInfo.format = m_swapchain->GetFormat();
   rtInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -58,26 +45,25 @@ void ImGuiRender::InitImGui()
 
   g_instance = m_instance;
 
+  ImGui_ImplVulkan_InitInfo init_info {};
+
+  init_info.Instance       = m_instance;
+  init_info.PhysicalDevice = m_physDevice;
+  init_info.Device         = m_device;
+  init_info.QueueFamily    = m_queue_FID;
+  init_info.Queue          = m_queue;
+  init_info.RenderPass     = m_renderpass;
+  init_info.PipelineCache  = VK_NULL_HANDLE;
+  init_info.DescriptorPool = m_descriptorPool;
+  init_info.Allocator      = VK_NULL_HANDLE;
+  init_info.MinImageCount  = m_swapchain->GetMinImageCount();
+  init_info.ImageCount     = m_swapchain->GetImageCount();
+  init_info.CheckVkResultFn = nullptr;
+
   ImGui_ImplVulkan_LoadFunctions(vulkanLoaderFunction);
-  ImGui_ImplVulkan_Init(&init_info, m_renderpass);
+  ImGui_ImplVulkan_Init(&init_info);
 
-  // Upload GUI fonts texture
-  {
-    auto cmdBuf = vk_utils::createCommandBuffer(m_device, m_commandPool);
-
-    VkCommandBufferBeginInfo begin_info = {};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuf, &begin_info));
-
-    ImGui_ImplVulkan_CreateFontsTexture(cmdBuf);
-
-    vkEndCommandBuffer(cmdBuf);
-
-    vk_utils::executeCommandBufferNow(cmdBuf, m_queue, m_device);
-
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
-  }
+  ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 VkCommandBuffer ImGuiRender::BuildGUIRenderCommand(uint32_t a_swapchainFrameIdx, void* a_userData)
