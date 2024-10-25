@@ -43,7 +43,7 @@ void SimpleRender::SetupRTImage()
 // convert geometry data and pass it to acceleration structure builder
 void SimpleRender::SetupRTScene()
 {
-  m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateSceneRT(""));
+  m_pAccelStruct = std::shared_ptr<ISceneObject>(CreateEmbreeRT());
   m_pAccelStruct->ClearGeom();
 
   auto meshesData = m_pScnMgr->GetMeshData();
@@ -55,15 +55,16 @@ void SimpleRender::SetupRTScene()
     auto indices = meshesData->IndexData() + info.m_indexOffset;
 
     auto stride = meshesData->SingleVertexSize() / sizeof(float);
-    std::vector<float4> m_vPos4f(info.m_vertNum);
+    std::vector<float3> m_vPos3f(info.m_vertNum);
     std::vector<uint32_t> m_indicesReordered(info.m_indNum);
     for(size_t v = 0; v < info.m_vertNum; ++v)
     {
-      m_vPos4f[v] = float4(vertices[v * stride + 0], vertices[v * stride + 1], vertices[v * stride + 2], 1.0f);
+      m_vPos3f[v] = float3(vertices[v * stride + 0], vertices[v * stride + 1], vertices[v * stride + 2]);
     }
     memcpy(m_indicesReordered.data(), indices, info.m_indNum * sizeof(m_indicesReordered[0]));
 
-    auto geomId = m_pAccelStruct->AddGeom_Triangles4f(m_vPos4f.data(), m_vPos4f.size(), m_indicesReordered.data(), m_indicesReordered.size());
+    auto geomId = m_pAccelStruct->AddGeom_Triangles3f((float*)(m_vPos3f.data()), m_vPos3f.size(),
+                                                      m_indicesReordered.data(), m_indicesReordered.size());
     meshMap[i] = geomId;
   }
 

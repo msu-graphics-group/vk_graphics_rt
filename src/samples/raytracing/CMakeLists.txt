@@ -15,8 +15,8 @@ set(RAYTRACING_EMBREE ${CMAKE_SOURCE_DIR}/external/CrossRT/EmbreeRT.cpp)
 
 set(RENDER_SOURCE
         ${CMAKE_SOURCE_DIR}/external/LiteScene/scene_mgr.cpp
-        ../../render/scene_mgr_loaders.cpp
-        ../../render/render_imgui.cpp
+        ${CMAKE_SOURCE_DIR}/src/render/render_imgui.cpp
+        ${CMAKE_SOURCE_DIR}/src/render/scn_manager_load.cpp
         simple_render.cpp
         simple_render_rt.cpp
         raytracing.cpp)
@@ -29,10 +29,10 @@ set(GENERATED_SOURCE
 
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
   link_directories("${CMAKE_SOURCE_DIR}/external/CrossRT/lib_win64")
-  set(EMBREE_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/external/CrossRT/lib_win64/embree3.lib)
+  set(EMBREE_LIBS ${CMAKE_SOURCE_DIR}/external/CrossRT/lib_win64/embree3.lib)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
   find_package(Threads REQUIRED)
-  set(EMBREE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/CrossRT/lib)
+  set(EMBREE_DIR ${CMAKE_SOURCE_DIR}/external/CrossRT/lib)
   link_directories(${EMBREE_DIR})
   set(EMBREE_LIBS ${EMBREE_DIR}/libembree3.so 
                   ${EMBREE_DIR}/libtbb.so)
@@ -53,14 +53,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
 
     target_link_libraries(raytracing PRIVATE project_options
                           volk glfw3 project_warnings
-                          ${RAYTRACING_EMBREE_LIBS})
+                          ${EMBREE_LIBS})
 
     add_custom_command(TARGET raytracing POST_BUILD COMMAND ${CMAKE_COMMAND}
             -E copy_directory "${PROJECT_SOURCE_DIR}/external/embree/bin_win64" $<TARGET_FILE_DIR:raytracing>)
 else()
     target_link_libraries(raytracing PRIVATE project_options
                           volk glfw project_warnings
-                          Threads::Threads dl ${RAYTRACING_EMBREE_LIBS}) #
+                          Threads::Threads dl ${EMBREE_LIBS}) #
 endif()
 
 if(OpenMP_CXX_FOUND)
