@@ -91,7 +91,7 @@ void SimpleRender::InitVulkan(const char** a_instanceExtensions, uint32_t a_inst
   CreateDevice(a_deviceId);
   volkLoadDevice(m_device);
 
-  GetRTFeatures();
+  //GetRTFeatures();
 
   m_commandPool = vk_utils::createCommandPool(m_device, m_queueFamilyIDXs.graphics,
                                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
